@@ -3,8 +3,9 @@ import * as FiIcons from 'react-icons/fi';
 import SafeIcon from '../common/SafeIcon';
 import { useSchedule } from '../context/ScheduleContext';
 import EmployeeForm from '../components/EmployeeForm';
+import '../styles/neumorphism.css';
 
-const { FiPlus, FiEdit2, FiTrash2, FiUser } = FiIcons;
+const { FiPlus, FiEdit2, FiTrash2, FiUser, FiCalendar, FiClock } = FiIcons;
 
 function EmployeeManagement() {
   const { state, dispatch } = useSchedule();
@@ -34,6 +35,17 @@ function EmployeeManagement() {
     setShowForm(true);
   };
 
+  // Helper function to format available days
+  const formatAvailableDays = (availableDays) => {
+    if (!availableDays) return 'Alle Tage';
+    
+    const availableDaysArray = Object.entries(availableDays)
+      .filter(([_, value]) => value)
+      .map(([day]) => day.charAt(0).toUpperCase());
+    
+    return availableDaysArray.join(', ') || 'Keine Tage';
+  };
+
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
@@ -43,26 +55,28 @@ function EmployeeManagement() {
         </div>
         <button
           onClick={() => setShowForm(true)}
-          className="flex items-center px-4 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700 transition-colors"
+          className="flex items-center px-4 py-2 neu-button bg-primary-50 text-primary-700"
         >
           <SafeIcon icon={FiPlus} className="w-5 h-5 mr-2" />
           Mitarbeiter hinzufügen
         </button>
       </div>
 
-      <div className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
+      <div className="neu-card overflow-hidden">
         <div className="px-6 py-4 border-b border-gray-200">
           <h3 className="text-lg font-semibold text-gray-900">Team Übersicht</h3>
         </div>
         
         {employees.length === 0 ? (
           <div className="text-center py-12">
-            <SafeIcon icon={FiUser} className="w-12 h-12 text-gray-400 mx-auto mb-4" />
+            <div className="w-16 h-16 mx-auto mb-4 rounded-full neu-element flex items-center justify-center">
+              <SafeIcon icon={FiUser} className="w-8 h-8 text-gray-400" />
+            </div>
             <h3 className="text-lg font-medium text-gray-900 mb-2">Keine Mitarbeiter</h3>
             <p className="text-gray-500 mb-4">Fügen Sie Ihren ersten Mitarbeiter hinzu</p>
             <button
               onClick={() => setShowForm(true)}
-              className="inline-flex items-center px-4 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700"
+              className="inline-flex items-center px-4 py-2 neu-button bg-primary-50 text-primary-700"
             >
               <SafeIcon icon={FiPlus} className="w-4 h-4 mr-2" />
               Mitarbeiter hinzufügen
@@ -80,6 +94,12 @@ function EmployeeManagement() {
                     Arbeitspensum
                   </th>
                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    Max. Tage
+                  </th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    Verfügbare Tage
+                  </th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                     Qualifikationen
                   </th>
                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
@@ -95,7 +115,7 @@ function EmployeeManagement() {
                   <tr key={employee.id} className="hover:bg-gray-50">
                     <td className="px-6 py-4 whitespace-nowrap">
                       <div className="flex items-center">
-                        <div className="w-10 h-10 bg-primary-100 rounded-full flex items-center justify-center">
+                        <div className="w-10 h-10 neu-element rounded-full flex items-center justify-center">
                           <span className="text-sm font-medium text-primary-700">
                             {employee.name.split(' ').map(n => n[0]).join('')}
                           </span>
@@ -106,33 +126,51 @@ function EmployeeManagement() {
                       </div>
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap">
-                      <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
+                      <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium neu-element-inset bg-blue-50 text-blue-700">
                         {employee.workload}%
                       </span>
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap">
+                      <div className="flex items-center space-x-1">
+                        <SafeIcon icon={FiClock} className="w-4 h-4 text-gray-400" />
+                        <span className="text-sm text-gray-900">{employee.maxConsecutiveDays || 4}</span>
+                      </div>
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap">
+                      <div className="flex items-center space-x-1">
+                        <SafeIcon icon={FiCalendar} className="w-4 h-4 text-gray-400" />
+                        <span className="text-sm text-gray-900">{formatAvailableDays(employee.availableDays)}</span>
+                      </div>
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap">
                       <div className="flex flex-wrap gap-1">
                         {employee.skills.map((skill) => (
-                          <span key={skill} className="inline-flex items-center px-2 py-1 rounded text-xs font-medium bg-green-100 text-green-800">
+                          <span key={skill} className="inline-flex items-center px-2 py-1 rounded text-xs font-medium neu-element-inset bg-green-50 text-green-700">
                             {skill}
                           </span>
                         ))}
                       </div>
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                      {employee.preferences.length > 0 ? `${employee.preferences.length} Wünsche` : 'Keine'}
+                      {employee.preferences.length > 0 ? (
+                        <span className="neu-element-inset px-2 py-1 rounded-full bg-yellow-50 text-yellow-700 text-xs">
+                          {employee.preferences.length} Wünsche
+                        </span>
+                      ) : 'Keine'}
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
                       <div className="flex items-center justify-end space-x-2">
                         <button
                           onClick={() => startEdit(employee)}
-                          className="text-primary-600 hover:text-primary-900 p-1 rounded"
+                          className="text-primary-600 hover:text-primary-900 p-2 neu-button"
+                          aria-label="Bearbeiten"
                         >
                           <SafeIcon icon={FiEdit2} className="w-4 h-4" />
                         </button>
                         <button
                           onClick={() => handleDeleteEmployee(employee.id)}
-                          className="text-red-600 hover:text-red-900 p-1 rounded"
+                          className="text-red-600 hover:text-red-900 p-2 neu-button"
+                          aria-label="Löschen"
                         >
                           <SafeIcon icon={FiTrash2} className="w-4 h-4" />
                         </button>

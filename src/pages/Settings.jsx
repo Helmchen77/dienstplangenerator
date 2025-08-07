@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import * as FiIcons from 'react-icons/fi';
 import SafeIcon from '../common/SafeIcon';
 import { useSchedule } from '../context/ScheduleContext';
+import '../styles/neumorphism.css';
 
 const { FiSave, FiClock, FiUsers, FiSettings } = FiIcons;
 
@@ -58,15 +59,17 @@ function Settings() {
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
+        <div className="p-6 neu-card">
           <div className="flex items-center mb-4">
-            <SafeIcon icon={FiClock} className="w-6 h-6 text-blue-600 mr-2" />
+            <div className="w-8 h-8 rounded-full neu-element flex items-center justify-center mr-3">
+              <SafeIcon icon={FiClock} className="w-5 h-5 text-orange-500" />
+            </div>
             <h3 className="text-lg font-semibold text-gray-900">Schichtzeiten</h3>
           </div>
           
           <div className="space-y-4">
             {Object.entries(settings.shifts).map(([shiftType, shift]) => (
-              <div key={shiftType} className="border border-gray-200 rounded-lg p-4">
+              <div key={shiftType} className="p-4 neu-element rounded-lg">
                 <h4 className="font-medium text-gray-900 mb-3 capitalize">
                   {shiftType}dienst
                 </h4>
@@ -79,7 +82,7 @@ function Settings() {
                       type="time"
                       value={shift.start}
                       onChange={(e) => updateShift(shiftType, 'start', e.target.value)}
-                      className="w-full px-2 py-1 border border-gray-300 rounded text-sm focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
+                      className="w-full neu-input"
                     />
                   </div>
                   <div>
@@ -90,7 +93,7 @@ function Settings() {
                       type="time"
                       value={shift.end}
                       onChange={(e) => updateShift(shiftType, 'end', e.target.value)}
-                      className="w-full px-2 py-1 border border-gray-300 rounded text-sm focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
+                      className="w-full neu-input"
                     />
                   </div>
                   <div>
@@ -101,7 +104,7 @@ function Settings() {
                       type="number"
                       value={shift.hours}
                       onChange={(e) => updateShift(shiftType, 'hours', e.target.value)}
-                      className="w-full px-2 py-1 border border-gray-300 rounded text-sm focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
+                      className="w-full neu-input"
                       min="0"
                       max="24"
                     />
@@ -114,7 +117,7 @@ function Settings() {
                       type="number"
                       value={shift.minutes}
                       onChange={(e) => updateShift(shiftType, 'minutes', e.target.value)}
-                      className="w-full px-2 py-1 border border-gray-300 rounded text-sm focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
+                      className="w-full neu-input"
                       min="0"
                       max="59"
                     />
@@ -128,14 +131,16 @@ function Settings() {
           </div>
         </div>
 
-        <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
+        <div className="p-6 neu-card">
           <div className="flex items-center mb-4">
-            <SafeIcon icon={FiUsers} className="w-6 h-6 text-green-600 mr-2" />
+            <div className="w-8 h-8 rounded-full neu-element flex items-center justify-center mr-3">
+              <SafeIcon icon={FiUsers} className="w-5 h-5 text-orange-500" />
+            </div>
             <h3 className="text-lg font-semibold text-gray-900">Mindestbesetzung</h3>
           </div>
           
           <div className="space-y-4">
-            <div className="border border-gray-200 rounded-lg p-4">
+            <div className="p-4 neu-element rounded-lg">
               <h4 className="font-medium text-gray-900 mb-3">Werktage</h4>
               <div className="grid grid-cols-3 gap-3">
                 {Object.entries(settings.minStaffing.weekday).map(([shift, count]) => (
@@ -147,7 +152,7 @@ function Settings() {
                       type="number"
                       value={count}
                       onChange={(e) => updateMinStaffing('weekday', shift, e.target.value)}
-                      className="w-full px-2 py-1 border border-gray-300 rounded text-sm focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
+                      className="w-full neu-input"
                       min="0"
                       max="10"
                     />
@@ -156,7 +161,7 @@ function Settings() {
               </div>
             </div>
 
-            <div className="border border-gray-200 rounded-lg p-4">
+            <div className="p-4 neu-element rounded-lg">
               <h4 className="font-medium text-gray-900 mb-3">Wochenende</h4>
               <div className="grid grid-cols-3 gap-3">
                 {Object.entries(settings.minStaffing.weekend).map(([shift, count]) => (
@@ -168,7 +173,7 @@ function Settings() {
                       type="number"
                       value={count}
                       onChange={(e) => updateMinStaffing('weekend', shift, e.target.value)}
-                      className="w-full px-2 py-1 border border-gray-300 rounded text-sm focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
+                      className="w-full neu-input"
                       min="0"
                       max="10"
                     />
@@ -180,24 +185,26 @@ function Settings() {
         </div>
       </div>
 
-      <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
+      <div className="p-6 neu-card">
         <div className="flex items-center mb-4">
-          <SafeIcon icon={FiSettings} className="w-6 h-6 text-purple-600 mr-2" />
-          <h3 className="text-lg font-semibold text-gray-900">Planungsregeln (bearbeitbar)</h3>
+          <div className="w-8 h-8 rounded-full neu-element flex items-center justify-center mr-3">
+            <SafeIcon icon={FiSettings} className="w-5 h-5 text-orange-500" />
+          </div>
+          <h3 className="text-lg font-semibold text-gray-900">Planungsregeln</h3>
         </div>
         
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
           <div className="space-y-4">
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-2">
-                Max. aufeinanderfolgende Arbeitstage
+                Min. freie Tage zwischen Dienstblöcken
               </label>
               <input
                 type="number"
-                value={settings.rules.maxConsecutiveDays}
-                onChange={(e) => updateRule('maxConsecutiveDays', e.target.value)}
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
-                min="1"
+                value={settings.rules.minDaysOffBetweenBlocks}
+                onChange={(e) => updateRule('minDaysOffBetweenBlocks', e.target.value)}
+                className="w-full neu-input"
+                min="0"
                 max="7"
               />
             </div>
@@ -210,7 +217,7 @@ function Settings() {
                 type="number"
                 value={settings.rules.minRestHours}
                 onChange={(e) => updateRule('minRestHours', e.target.value)}
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
+                className="w-full neu-input"
                 min="8"
                 max="24"
               />
@@ -226,7 +233,7 @@ function Settings() {
                 type="number"
                 value={settings.rules.maxHoursPerDay}
                 onChange={(e) => updateRule('maxHoursPerDay', e.target.value)}
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
+                className="w-full neu-input"
                 min="4"
                 max="24"
               />
@@ -240,7 +247,7 @@ function Settings() {
                 type="number"
                 value={settings.rules.maxHoursPerWeek}
                 onChange={(e) => updateRule('maxHoursPerWeek', e.target.value)}
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
+                className="w-full neu-input"
                 min="10"
                 max="60"
               />
@@ -250,27 +257,49 @@ function Settings() {
           <div className="space-y-4">
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-2">
-                Stunden-Toleranz (±Stunden)
+                Stunden-Toleranz
               </label>
-              <input
-                type="number"
-                value={settings.rules.hoursTolerance}
-                onChange={(e) => updateRule('hoursTolerance', e.target.value)}
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
-                min="0"
-                max="20"
-              />
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <input
+                    type="number"
+                    value={settings.rules.hoursTolerance}
+                    onChange={(e) => updateRule('hoursTolerance', e.target.value)}
+                    className="w-full neu-input"
+                    min="0"
+                    max="20"
+                  />
+                  <span className="text-xs text-gray-500">Stunden</span>
+                </div>
+                <div>
+                  <input
+                    type="number"
+                    value={settings.rules.minutesTolerance}
+                    onChange={(e) => updateRule('minutesTolerance', e.target.value)}
+                    className="w-full neu-input"
+                    min="0"
+                    max="59"
+                  />
+                  <span className="text-xs text-gray-500">Minuten</span>
+                </div>
+              </div>
             </div>
             
-            <div className="flex items-center">
+            <div className="flex items-center p-4 neu-element rounded-lg">
               <input
                 type="checkbox"
                 id="noEarlyAfterLate"
                 checked={settings.rules.noEarlyAfterLate}
                 onChange={(e) => updateRule('noEarlyAfterLate', e.target.checked)}
-                className="w-4 h-4 text-primary-600 bg-gray-100 border-gray-300 rounded focus:ring-primary-500"
+                className="hidden"
               />
-              <label htmlFor="noEarlyAfterLate" className="ml-2 text-sm text-gray-700">
+              <div 
+                className={`neu-toggle ${settings.rules.noEarlyAfterLate ? 'active' : ''}`}
+                onClick={() => updateRule('noEarlyAfterLate', !settings.rules.noEarlyAfterLate)}
+              >
+                <div className="neu-toggle-switch"></div>
+              </div>
+              <label htmlFor="noEarlyAfterLate" className="ml-3 text-sm text-gray-700">
                 Kein Frühdienst nach Spätdienst
               </label>
             </div>
@@ -281,7 +310,7 @@ function Settings() {
       <div className="flex justify-end">
         <button
           onClick={handleSave}
-          className="flex items-center px-6 py-3 bg-primary-600 text-white rounded-lg hover:bg-primary-700 transition-colors"
+          className="flex items-center px-6 py-3 neu-button bg-orange-50 text-orange-700"
         >
           <SafeIcon icon={FiSave} className="w-5 h-5 mr-2" />
           Einstellungen speichern

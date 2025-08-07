@@ -8,11 +8,18 @@ export default {
     extend: {
       colors: {
         primary: {
-          50: '#eff6ff',
-          100: '#dbeafe',
-          500: '#3b82f6',
-          600: '#2563eb',
-          700: '#1d4ed8',
+          50: '#fff8e6',
+          100: '#ffefcc',
+          500: '#ff8c00',
+          600: '#e67e00',
+          700: '#cc7000',
+        },
+        orange: {
+          50: '#fff8e6',
+          100: '#ffefcc',
+          500: '#ff8c00',
+          600: '#e67e00',
+          700: '#cc7000',
         },
         success: {
           50: '#f0fdf4',

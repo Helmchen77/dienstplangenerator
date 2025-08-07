@@ -1,0 +1,157 @@
+/* Neumorphic Design System */
+:root {
+  --primary-color: #ff8c00;
+  --primary-dark: #e67e00;
+  --primary-light: #ffa940;
+  --primary-bg: #fff8e6;
+  --neu-background: #f0f4f8;
+  --neu-shadow-light: #ffffff;
+  --neu-shadow-dark: #d1d9e6;
+}
+
+.neu-element {
+  border-radius: 16px;
+  background: #f0f4f8;
+  box-shadow: 
+    8px 8px 16px #d1d9e6,
+    -8px -8px 16px #ffffff;
+}
+
+.neu-element-inset {
+  border-radius: 16px;
+  background: #f0f4f8;
+  box-shadow: 
+    inset 6px 6px 12px #d1d9e6,
+    inset -6px -6px 12px #ffffff;
+}
+
+.neu-button {
+  border-radius: 12px;
+  background: #f0f4f8;
+  box-shadow: 
+    5px 5px 10px #d1d9e6,
+    -5px -5px 10px #ffffff;
+  transition: all 0.2s ease;
+}
+
+.neu-button:hover {
+  box-shadow: 
+    4px 4px 8px #d1d9e6,
+    -4px -4px 8px #ffffff;
+  transform: translateY(1px);
+}
+
+.neu-button:active {
+  box-shadow: 
+    inset 4px 4px 8px #d1d9e6,
+    inset -4px -4px 8px #ffffff;
+}
+
+.neu-input {
+  border-radius: 12px;
+  background: #f0f4f8;
+  box-shadow: 
+    inset 4px 4px 8px #d1d9e6,
+    inset -4px -4px 8px #ffffff;
+  border: none;
+  padding: 12px 16px;
+}
+
+.neu-input:focus {
+  outline: none;
+  box-shadow: 
+    inset 5px 5px 10px #d1d9e6,
+    inset -5px -5px 10px #ffffff;
+}
+
+.neu-card {
+  border-radius: 20px;
+  background: #f0f4f8;
+  box-shadow: 
+    10px 10px 20px #d1d9e6,
+    -10px -10px 20px #ffffff;
+  overflow: hidden;
+}
+
+.neu-toggle {
+  position: relative;
+  width: 50px;
+  height: 26px;
+  border-radius: 25px;
+  background: #f0f4f8;
+  box-shadow: 
+    inset 3px 3px 6px #d1d9e6,
+    inset -3px -3px 6px #ffffff;
+  cursor: pointer;
+}
+
+.neu-toggle-switch {
+  position: absolute;
+  top: 3px;
+  left: 3px;
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  background: #f0f4f8;
+  box-shadow: 
+    2px 2px 4px #d1d9e6,
+    -2px -2px 4px #ffffff;
+  transition: all 0.3s ease;
+}
+
+.neu-toggle.active .neu-toggle-switch {
+  left: 27px;
+  background: var(--primary-color);
+}
+
+/* Color variants - updated to use orange as accent color */
+.neu-primary {
+  background: var(--primary-bg);
+  box-shadow: 
+    8px 8px 16px #e6d8c4,
+    -8px -8px 16px #ffffff;
+}
+
+.neu-success {
+  background: #e6ffee;
+  box-shadow: 
+    8px 8px 16px #c4e6d1,
+    -8px -8px 16px #ffffff;
+}
+
+.neu-warning {
+  background: var(--primary-bg);
+  box-shadow: 
+    8px 8px 16px #e6dcc4,
+    -8px -8px 16px #ffffff;
+}
+
+.neu-danger {
+  background: #ffe6e6;
+  box-shadow: 
+    8px 8px 16px #e6c4c4,
+    -8px -8px 16px #ffffff;
+}
+
+/* Print styles */
+@media print {
+  .print\:hidden {
+    display: none !important;
+  }
+  
+  body {
+    background-color: white;
+  }
+  
+  .neu-card,
+  .neu-element,
+  .neu-element-inset,
+  .neu-button {
+    box-shadow: none !important;
+    border: 1px solid #eee;
+  }
+  
+  .sticky {
+    position: relative !important;
+  }
+}
