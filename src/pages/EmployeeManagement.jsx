@@ -1,32 +1,58 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import * as FiIcons from 'react-icons/fi';
 import SafeIcon from '../common/SafeIcon';
 import { useSchedule } from '../context/ScheduleContext';
 import EmployeeForm from '../components/EmployeeForm';
+import DatabaseService from '../utils/databaseService';
 import '../styles/neumorphism.css';
 
-const { FiPlus, FiEdit2, FiTrash2, FiUser, FiCalendar, FiClock } = FiIcons;
+const { FiPlus, FiEdit2, FiTrash2, FiUser, FiCalendar, FiClock, FiLoader } = FiIcons;
 
 function EmployeeManagement() {
   const { state, dispatch } = useSchedule();
-  const { employees } = state;
+  const { employees, loading } = state;
   const [showForm, setShowForm] = useState(false);
   const [editingEmployee, setEditingEmployee] = useState(null);
+  const [isProcessing, setIsProcessing] = useState(false);
 
-  const handleAddEmployee = (employeeData) => {
-    dispatch({ type: 'ADD_EMPLOYEE', payload: employeeData });
-    setShowForm(false);
+  const handleAddEmployee = async (employeeData) => {
+    setIsProcessing(true);
+    try {
+      const savedEmployee = await DatabaseService.saveEmployee(employeeData);
+      dispatch({ type: 'ADD_EMPLOYEE', payload: savedEmployee });
+    } catch (error) {
+      console.error('Error saving employee:', error);
+    } finally {
+      setIsProcessing(false);
+      setShowForm(false);
+    }
   };
 
-  const handleEditEmployee = (employeeData) => {
-    dispatch({ type: 'UPDATE_EMPLOYEE', payload: employeeData });
-    setEditingEmployee(null);
-    setShowForm(false);
+  const handleEditEmployee = async (employeeData) => {
+    setIsProcessing(true);
+    try {
+      const updatedEmployee = await DatabaseService.saveEmployee(employeeData);
+      dispatch({ type: 'UPDATE_EMPLOYEE', payload: updatedEmployee });
+    } catch (error) {
+      console.error('Error updating employee:', error);
+    } finally {
+      setIsProcessing(false);
+      setEditingEmployee(null);
+      setShowForm(false);
+    }
   };
 
-  const handleDeleteEmployee = (employeeId) => {
+  const handleDeleteEmployee = async (employeeId) => {
     if (confirm('Möchten Sie diesen Mitarbeiter wirklich löschen?')) {
-      dispatch({ type: 'DELETE_EMPLOYEE', payload: employeeId });
+      setIsProcessing(true);
+      try {
+        await DatabaseService.deleteEmployee(employeeId);
+        dispatch({ type: 'DELETE_EMPLOYEE', payload: employeeId });
+      } catch (error) {
+        console.error('Error deleting employee:', error);
+      } finally {
+        setIsProcessing(false);
+      }
     }
   };
 
@@ -43,8 +69,19 @@ function EmployeeManagement() {
       .filter(([_, value]) => value)
       .map(([day]) => day.charAt(0).toUpperCase());
     
-    return availableDaysArray.join(', ') || 'Keine Tage';
+    return availableDaysArray.join(',') || 'Keine Tage';
   };
+
+  if (loading || isProcessing) {
+    return (
+      <div className="flex items-center justify-center h-64">
+        <div className="flex flex-col items-center space-y-4">
+          <SafeIcon icon={FiLoader} className="w-12 h-12 text-orange-500 animate-spin" />
+          <p className="text-lg text-gray-700">Daten werden geladen...</p>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-6">
@@ -152,7 +189,7 @@ function EmployeeManagement() {
                       </div>
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                      {employee.preferences.length > 0 ? (
+                      {employee.preferences && employee.preferences.length > 0 ? (
                         <span className="neu-element-inset px-2 py-1 rounded-full bg-yellow-50 text-yellow-700 text-xs">
                           {employee.preferences.length} Wünsche
                         </span>

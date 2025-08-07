@@ -8,9 +8,13 @@ import { getCoverageImprovementSuggestions } from '../utils/coverageCalculator';
 import SchedulePDF from '../components/SchedulePDF';
 import ScheduleExcel from '../components/ScheduleExcel';
 import VerticalScheduleView from '../components/VerticalScheduleView';
+import DatabaseService from '../utils/databaseService';
 import '../styles/neumorphism.css';
 
-const { FiDownload, FiAlertTriangle, FiCalendar, FiUsers, FiFileText, FiColumns, FiList, FiInfo, FiX } = FiIcons;
+const { 
+  FiDownload, FiAlertTriangle, FiCalendar, FiUsers, FiFileText, 
+  FiColumns, FiList, FiInfo, FiX, FiTrash2, FiLoader 
+} = FiIcons;
 
 function ScheduleView() {
   const { state, dispatch } = useSchedule();
@@ -19,10 +23,25 @@ function ScheduleView() {
   const [showExcel, setShowExcel] = useState(false);
   const [showSuggestions, setShowSuggestions] = useState(false);
   const [showArchive, setShowArchive] = useState(false);
+  const [isDeleting, setIsDeleting] = useState(false);
 
   const toggleViewMode = () => {
     const newMode = viewMode === 'horizontal' ? 'vertical' : 'horizontal';
     dispatch({ type: 'SET_VIEW_MODE', payload: newMode });
+  };
+
+  const handleDeleteSchedule = async (scheduleId) => {
+    if (confirm('Möchten Sie diesen Dienstplan wirklich löschen?')) {
+      setIsDeleting(true);
+      try {
+        await DatabaseService.deleteSchedule(scheduleId);
+        dispatch({ type: 'DELETE_SCHEDULE', payload: scheduleId });
+      } catch (error) {
+        console.error('Error deleting schedule:', error);
+      } finally {
+        setIsDeleting(false);
+      }
+    }
   };
 
   if (!currentSchedule) {
@@ -87,6 +106,24 @@ function ScheduleView() {
     dispatch({ type: 'SET_CURRENT_SCHEDULE', payload: schedule });
     setShowArchive(false);
   };
+
+  // Helper function to determine weekend limit for an employee
+  const getWeekendLimit = (employee) => {
+    return employee.workload <= 50 ? 
+      (state.settings.weekendRules?.under50 || 1) : 
+      (state.settings.weekendRules?.over50 || 2);
+  };
+
+  if (isDeleting) {
+    return (
+      <div className="flex items-center justify-center h-64">
+        <div className="flex flex-col items-center space-y-4">
+          <SafeIcon icon={FiLoader} className="w-12 h-12 text-orange-500 animate-spin" />
+          <p className="text-lg text-gray-700">Dienstplan wird gelöscht...</p>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-6">
@@ -154,23 +191,37 @@ function ScheduleView() {
             {schedules.map((schedule, index) => (
               <div 
                 key={index} 
-                className={`p-3 neu-element rounded-lg cursor-pointer hover:bg-gray-50 transition-colors ${
+                className={`p-3 neu-element rounded-lg hover:bg-gray-50 transition-colors ${
                   currentSchedule.month === schedule.month ? 'bg-orange-50 border border-orange-200' : ''
                 }`}
-                onClick={() => handleScheduleSelect(schedule)}
               >
-                <div className="flex items-center">
-                  <div className="w-8 h-8 neu-element-inset rounded-full flex items-center justify-center bg-primary-50 mr-3">
-                    <SafeIcon icon={FiCalendar} className="w-4 h-4 text-primary-700" />
+                <div className="flex items-center justify-between">
+                  <div 
+                    className="flex items-center flex-1 cursor-pointer" 
+                    onClick={() => handleScheduleSelect(schedule)}
+                  >
+                    <div className="w-8 h-8 neu-element-inset rounded-full flex items-center justify-center bg-primary-50 mr-3">
+                      <SafeIcon icon={FiCalendar} className="w-4 h-4 text-primary-700" />
+                    </div>
+                    <div>
+                      <p className="text-sm font-medium text-gray-900">
+                        {new Date(schedule.month + '-01').toLocaleDateString('de-DE', {month: 'long', year: 'numeric'})}
+                      </p>
+                      <p className="text-xs text-gray-500">
+                        Erstellt am {new Date(schedule.createdAt).toLocaleDateString('de-DE')}
+                      </p>
+                    </div>
                   </div>
-                  <div>
-                    <p className="text-sm font-medium text-gray-900">
-                      {new Date(schedule.month).toLocaleDateString('de-DE', {month: 'long', year: 'numeric'})}
-                    </p>
-                    <p className="text-xs text-gray-500">
-                      Erstellt am {new Date(schedule.createdAt).toLocaleDateString('de-DE')}
-                    </p>
-                  </div>
+                  <button
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      handleDeleteSchedule(schedule.id);
+                    }}
+                    className="p-2 text-gray-400 hover:text-red-600"
+                    title="Dienstplan löschen"
+                  >
+                    <SafeIcon icon={FiTrash2} className="w-4 h-4" />
+                  </button>
                 </div>
               </div>
             ))}
@@ -238,7 +289,7 @@ function ScheduleView() {
                         <div className="space-y-1">
                           {suggestion.overAllocated.map((emp, i) => (
                             <div key={i} className="text-sm">
-                              <span className="font-medium">{emp.name}</span>: {emp.weekendShifts} Schichten 
+                              <span className="font-medium">{emp.name}</span>: {emp.weekendShifts} Tage 
                               (max. {emp.recommendedMax} bei {emp.workload}% Pensum)
                             </div>
                           ))}
@@ -251,7 +302,7 @@ function ScheduleView() {
                         <div className="space-y-1">
                           {suggestion.hasCapacity.map((emp, i) => (
                             <div key={i} className="text-sm">
-                              <span className="font-medium">{emp.name}</span>: {emp.weekendShifts} von {emp.recommendedMax} Schichten
+                              <span className="font-medium">{emp.name}</span>: {emp.weekendShifts} von {emp.recommendedMax} Tage
                             </div>
                           ))}
                         </div>
@@ -313,7 +364,7 @@ function ScheduleView() {
                   Soll-Stunden
                 </th>
                 <th className="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  Wochenenden
+                  Wochenendtage
                 </th>
               </tr>
             </thead>
@@ -322,8 +373,8 @@ function ScheduleView() {
                 const stats = currentSchedule.employeeStats?.[employee.id] || { früh: 0, zwischen: 0, spät: 0, totalDays: 0 };
                 const actualHours = currentSchedule.employeeHours?.[employee.id] || 0;
                 const targetHours = currentSchedule.targetHours?.[employee.id] || 0;
-                const weekendShifts = currentSchedule.employeeWeekendShifts?.[employee.id] || 0;
-                const maxWeekendShifts = employee.workload > 50 ? 2 : 1;
+                const weekendDays = currentSchedule.employeeWeekendShifts?.[employee.id] || 0;
+                const maxWeekendDays = getWeekendLimit(employee);
                 
                 return (
                   <tr key={employee.id} className="hover:bg-gray-50">
@@ -363,11 +414,11 @@ function ScheduleView() {
                     </td>
                     <td className="px-4 py-4 whitespace-nowrap text-center">
                       <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
-                        weekendShifts > maxWeekendShifts * 2 
+                        weekendDays > maxWeekendDays 
                           ? 'bg-red-50 text-red-700' 
                           : 'bg-green-50 text-green-700'
                       }`}>
-                        {weekendShifts} / {maxWeekendShifts * 2}
+                        {weekendDays} / {maxWeekendDays}
                       </span>
                     </td>
                   </tr>
@@ -463,7 +514,7 @@ function ScheduleView() {
             <div className="flex justify-between p-3 neu-element-inset rounded-lg">
               <span className="text-sm text-gray-600">Wochenenden:</span>
               <span className="text-sm font-medium text-gray-900">
-                {days.filter(day => isWeekend(day)).length}
+                {days.filter(day => isWeekend(day)).length / 2} Wochenenden
               </span>
             </div>
             <div className="flex justify-between p-3 neu-element-inset rounded-lg">

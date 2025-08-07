@@ -4,13 +4,14 @@ import SafeIcon from '../common/SafeIcon';
 import { useSchedule } from '../context/ScheduleContext';
 import { generateSchedule } from '../utils/scheduleGenerator';
 import ScheduleNotification from '../components/ScheduleNotification';
+import DatabaseService from '../utils/databaseService';
 import '../styles/neumorphism.css';
 
-const { FiCalendar, FiPlay, FiAlertTriangle, FiCheck } = FiIcons;
+const { FiCalendar, FiPlay, FiAlertTriangle, FiCheck, FiLoader } = FiIcons;
 
 function ScheduleGeneration() {
   const { state, dispatch } = useSchedule();
-  const { employees } = state;
+  const { employees, settings } = state;
   
   const [selectedMonth, setSelectedMonth] = useState(() => {
     const today = new Date();
@@ -47,20 +48,18 @@ function ScheduleGeneration() {
           employeeHours: result.employeeHours,
           employeeStats: result.employeeStats,
           targetHours: result.targetHours,
+          employeeWeekendShifts: result.employeeWeekendShifts,
           createdAt: new Date().toISOString()
         };
         
+        // Save to database
+        const savedSchedule = await DatabaseService.saveSchedule(newSchedule);
+        
         // Check if we have a webhook response to use
         if (result.webhookResponse) {
-          dispatch({ 
-            type: 'IMPORT_SCHEDULE_FROM_WEBHOOK', 
-            payload: result.webhookResponse 
-          });
+          dispatch({ type: 'IMPORT_SCHEDULE_FROM_WEBHOOK', payload: result.webhookResponse });
         } else {
-          dispatch({ 
-            type: 'ADD_SCHEDULE', 
-            payload: newSchedule 
-          });
+          dispatch({ type: 'ADD_SCHEDULE', payload: savedSchedule });
         }
         
         setGenerationResult({
@@ -100,7 +99,7 @@ function ScheduleGeneration() {
                 className="neu-input w-full"
               />
             </div>
-
+            
             <div className="pt-4 border-t border-gray-200">
               <button
                 onClick={handleGenerate}
@@ -113,7 +112,7 @@ function ScheduleGeneration() {
               >
                 {isGenerating ? (
                   <>
-                    <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-orange-700 mr-2"></div>
+                    <SafeIcon icon={FiLoader} className="w-5 h-5 mr-2 animate-spin" />
                     Erstelle Plan...
                   </>
                 ) : (
@@ -136,20 +135,14 @@ function ScheduleGeneration() {
               }`}>
                 <SafeIcon
                   icon={employees.length > 0 ? FiCheck : FiAlertTriangle}
-                  className={`w-5 h-5 ${
-                    employees.length > 0 ? 'text-green-600' : 'text-yellow-600'
-                  }`}
+                  className={`w-5 h-5 ${employees.length > 0 ? 'text-green-600' : 'text-yellow-600'}`}
                 />
               </div>
-              <span
-                className={`text-sm ${
-                  employees.length > 0 ? 'text-green-700' : 'text-yellow-700'
-                }`}
-              >
+              <span className={`text-sm ${employees.length > 0 ? 'text-green-700' : 'text-yellow-700'}`}>
                 Mitarbeiter hinzugefügt ({employees.length})
               </span>
             </div>
-
+            
             <div className="flex items-center p-3 neu-element rounded-lg">
               <div className={`w-8 h-8 rounded-full flex items-center justify-center mr-3 ${
                 employees.some((emp) => emp.skills.length > 0) ? 'neu-element bg-green-50' : 'neu-element bg-yellow-50'
@@ -157,23 +150,17 @@ function ScheduleGeneration() {
                 <SafeIcon
                   icon={employees.some((emp) => emp.skills.length > 0) ? FiCheck : FiAlertTriangle}
                   className={`w-5 h-5 ${
-                    employees.some((emp) => emp.skills.length > 0)
-                      ? 'text-green-600'
-                      : 'text-yellow-600'
+                    employees.some((emp) => emp.skills.length > 0) ? 'text-green-600' : 'text-yellow-600'
                   }`}
                 />
               </div>
-              <span
-                className={`text-sm ${
-                  employees.some((emp) => emp.skills.length > 0)
-                    ? 'text-green-700'
-                    : 'text-yellow-700'
-                }`}
-              >
+              <span className={`text-sm ${
+                employees.some((emp) => emp.skills.length > 0) ? 'text-green-700' : 'text-yellow-700'
+              }`}>
                 Qualifikationen definiert
               </span>
             </div>
-
+            
             <div className="flex items-center p-3 neu-element rounded-lg">
               <div className="w-8 h-8 rounded-full flex items-center justify-center mr-3 neu-element bg-green-50">
                 <SafeIcon icon={FiCheck} className="w-5 h-5 text-green-600" />
@@ -181,7 +168,7 @@ function ScheduleGeneration() {
               <span className="text-sm text-green-700">Schichtzeiten konfiguriert</span>
             </div>
           </div>
-
+          
           {errors.length > 0 && (
             <div className="mt-4 p-4 bg-red-50 border border-red-200 rounded-lg neu-element">
               <h4 className="text-sm font-medium text-red-800 mb-2">Fehler:</h4>
@@ -207,28 +194,34 @@ function ScheduleGeneration() {
               <li>• Keine Frühdienst nach Spätdienst</li>
               <li>• Freiwünsche werden berücksichtigt</li>
               <li>• Arbeitspensum wird berücksichtigt</li>
-              <li>• Mindestens {state.settings.rules.minDaysOffBetweenBlocks} freie Tage zwischen Dienstblöcken</li>
+              <li>• Mindestens {settings.rules.minDaysOffBetweenBlocks} freie Tage zwischen Dienstblöcken</li>
               <li>• Faire Verteilung der Dienste</li>
               <li>• Feiertage und Krankheiten werden berücksichtigt</li>
             </ul>
           </div>
-
+          
           <div>
             <h4 className="font-medium text-gray-900 mb-2">Schichtzeiten</h4>
             <ul className="text-sm text-gray-600 space-y-1 p-3 neu-element-inset rounded-lg">
-              <li>• Frühdienst: {state.settings.shifts.früh.start} - {state.settings.shifts.früh.end} 
-                  ({state.settings.shifts.früh.hours}h {state.settings.shifts.früh.minutes}min)</li>
-              <li>• Zwischendienst: {state.settings.shifts.zwischen.start} - {state.settings.shifts.zwischen.end}
-                  ({state.settings.shifts.zwischen.hours}h {state.settings.shifts.zwischen.minutes}min)</li>
-              <li>• Spätdienst: {state.settings.shifts.spät.start} - {state.settings.shifts.spät.end}
-                  ({state.settings.shifts.spät.hours}h {state.settings.shifts.spät.minutes}min)</li>
+              <li>• Frühdienst: {settings.shifts.früh.start} - {settings.shifts.früh.end} ({settings.shifts.früh.hours}h {settings.shifts.früh.minutes}min)</li>
+              <li>• Zwischendienst: {settings.shifts.zwischen.start} - {settings.shifts.zwischen.end} ({settings.shifts.zwischen.hours}h {settings.shifts.zwischen.minutes}min)</li>
+              <li>• Spätdienst: {settings.shifts.spät.start} - {settings.shifts.spät.end} ({settings.shifts.spät.hours}h {settings.shifts.spät.minutes}min)</li>
             </ul>
           </div>
+        </div>
+        
+        <div className="mt-6">
+          <h4 className="font-medium text-gray-900 mb-2">Wochenendregeln</h4>
+          <ul className="text-sm text-gray-600 space-y-1 p-3 neu-element-inset rounded-lg">
+            <li>• Mitarbeiter mit Pensum bis 50%: Maximal {settings.weekendRules?.under50 || 1} Wochenende(n) pro Monat</li>
+            <li>• Mitarbeiter mit Pensum über 50%: Maximal {settings.weekendRules?.over50 || 2} Wochenende(n) pro Monat</li>
+            <li>• Wochenenden werden möglichst gleichmäßig verteilt</li>
+          </ul>
         </div>
       </div>
 
       {showNotification && generationResult && (
-        <ScheduleNotification 
+        <ScheduleNotification
           success={generationResult.success}
           violations={generationResult.violations}
           onClose={() => setShowNotification(false)}

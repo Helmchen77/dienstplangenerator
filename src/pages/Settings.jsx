@@ -2,17 +2,30 @@ import React, { useState } from 'react';
 import * as FiIcons from 'react-icons/fi';
 import SafeIcon from '../common/SafeIcon';
 import { useSchedule } from '../context/ScheduleContext';
+import DatabaseService from '../utils/databaseService';
 import '../styles/neumorphism.css';
 
-const { FiSave, FiClock, FiUsers, FiSettings } = FiIcons;
+const { FiSave, FiClock, FiUsers, FiSettings, FiCalendar } = FiIcons;
 
 function Settings() {
   const { state, dispatch } = useSchedule();
   const [settings, setSettings] = useState(state.settings);
+  const [isSaving, setIsSaving] = useState(false);
 
-  const handleSave = () => {
-    dispatch({ type: 'UPDATE_SETTINGS', payload: settings });
-    alert('Einstellungen gespeichert!');
+  const handleSave = async () => {
+    setIsSaving(true);
+    try {
+      // Save settings to database
+      await DatabaseService.saveSettings(settings);
+      // Update local state
+      dispatch({ type: 'UPDATE_SETTINGS', payload: settings });
+      alert('Einstellungen gespeichert!');
+    } catch (error) {
+      console.error('Error saving settings:', error);
+      alert('Fehler beim Speichern der Einstellungen!');
+    } finally {
+      setIsSaving(false);
+    }
   };
 
   const updateShift = (shiftType, field, value) => {
@@ -51,6 +64,16 @@ function Settings() {
     }));
   };
 
+  const updateWeekendRule = (type, value) => {
+    setSettings(prev => ({
+      ...prev,
+      weekendRules: {
+        ...prev.weekendRules,
+        [type]: parseInt(value) || 0
+      }
+    }));
+  };
+
   return (
     <div className="space-y-6">
       <div>
@@ -66,7 +89,6 @@ function Settings() {
             </div>
             <h3 className="text-lg font-semibold text-gray-900">Schichtzeiten</h3>
           </div>
-          
           <div className="space-y-4">
             {Object.entries(settings.shifts).map(([shiftType, shift]) => (
               <div key={shiftType} className="p-4 neu-element rounded-lg">
@@ -138,7 +160,6 @@ function Settings() {
             </div>
             <h3 className="text-lg font-semibold text-gray-900">Mindestbesetzung</h3>
           </div>
-          
           <div className="space-y-4">
             <div className="p-4 neu-element rounded-lg">
               <h4 className="font-medium text-gray-900 mb-3">Werktage</h4>
@@ -160,7 +181,6 @@ function Settings() {
                 ))}
               </div>
             </div>
-
             <div className="p-4 neu-element rounded-lg">
               <h4 className="font-medium text-gray-900 mb-3">Wochenende</h4>
               <div className="grid grid-cols-3 gap-3">
@@ -188,11 +208,61 @@ function Settings() {
       <div className="p-6 neu-card">
         <div className="flex items-center mb-4">
           <div className="w-8 h-8 rounded-full neu-element flex items-center justify-center mr-3">
+            <SafeIcon icon={FiCalendar} className="w-5 h-5 text-orange-500" />
+          </div>
+          <h3 className="text-lg font-semibold text-gray-900">Wochenendregeln</h3>
+        </div>
+        
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+          <div className="p-4 neu-element rounded-lg">
+            <h4 className="font-medium text-gray-900 mb-3">Mitarbeiter mit Pensum bis 50%</h4>
+            <div className="space-y-2">
+              <label className="block text-sm font-medium text-gray-700">
+                Maximale Anzahl Wochenenden pro Monat
+              </label>
+              <input
+                type="number"
+                value={settings.weekendRules?.under50 || 1}
+                onChange={(e) => updateWeekendRule('under50', e.target.value)}
+                className="w-full neu-input"
+                min="0"
+                max="5"
+              />
+              <p className="text-xs text-gray-500 mt-1">
+                Die Anzahl der Wochenenden, die Mitarbeiter mit einem Pensum von bis zu 50% pro Monat arbeiten können.
+              </p>
+            </div>
+          </div>
+          
+          <div className="p-4 neu-element rounded-lg">
+            <h4 className="font-medium text-gray-900 mb-3">Mitarbeiter mit Pensum über 50%</h4>
+            <div className="space-y-2">
+              <label className="block text-sm font-medium text-gray-700">
+                Maximale Anzahl Wochenenden pro Monat
+              </label>
+              <input
+                type="number"
+                value={settings.weekendRules?.over50 || 2}
+                onChange={(e) => updateWeekendRule('over50', e.target.value)}
+                className="w-full neu-input"
+                min="0"
+                max="5"
+              />
+              <p className="text-xs text-gray-500 mt-1">
+                Die Anzahl der Wochenenden, die Mitarbeiter mit einem Pensum von über 50% pro Monat arbeiten können.
+              </p>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div className="p-6 neu-card">
+        <div className="flex items-center mb-4">
+          <div className="w-8 h-8 rounded-full neu-element flex items-center justify-center mr-3">
             <SafeIcon icon={FiSettings} className="w-5 h-5 text-orange-500" />
           </div>
           <h3 className="text-lg font-semibold text-gray-900">Planungsregeln</h3>
         </div>
-        
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
           <div className="space-y-4">
             <div>
@@ -208,7 +278,6 @@ function Settings() {
                 max="7"
               />
             </div>
-            
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-2">
                 Min. Ruhezeit (Stunden)
@@ -223,7 +292,6 @@ function Settings() {
               />
             </div>
           </div>
-
           <div className="space-y-4">
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-2">
@@ -238,7 +306,6 @@ function Settings() {
                 max="24"
               />
             </div>
-            
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-2">
                 Max. Arbeitszeit pro Woche (Stunden)
@@ -253,7 +320,6 @@ function Settings() {
               />
             </div>
           </div>
-
           <div className="space-y-4">
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-2">
@@ -284,7 +350,6 @@ function Settings() {
                 </div>
               </div>
             </div>
-            
             <div className="flex items-center p-4 neu-element rounded-lg">
               <input
                 type="checkbox"
@@ -293,7 +358,7 @@ function Settings() {
                 onChange={(e) => updateRule('noEarlyAfterLate', e.target.checked)}
                 className="hidden"
               />
-              <div 
+              <div
                 className={`neu-toggle ${settings.rules.noEarlyAfterLate ? 'active' : ''}`}
                 onClick={() => updateRule('noEarlyAfterLate', !settings.rules.noEarlyAfterLate)}
               >
@@ -308,12 +373,13 @@ function Settings() {
       </div>
 
       <div className="flex justify-end">
-        <button
+        <button 
           onClick={handleSave}
+          disabled={isSaving}
           className="flex items-center px-6 py-3 neu-button bg-orange-50 text-orange-700"
         >
-          <SafeIcon icon={FiSave} className="w-5 h-5 mr-2" />
-          Einstellungen speichern
+          <SafeIcon icon={isSaving ? FiClock : FiSave} className={`w-5 h-5 mr-2 ${isSaving ? 'animate-spin' : ''}`} />
+          {isSaving ? 'Wird gespeichert...' : 'Einstellungen speichern'}
         </button>
       </div>
     </div>

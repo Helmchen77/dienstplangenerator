@@ -75,23 +75,6 @@ function calculateDaysOffBetweenBlocks(schedule, employeeId, currentDate) {
   return daysOff;
 }
 
-// Calculate weekend shifts for an employee
-function getWeekendShiftsCount(employee, schedule) {
-  let count = 0;
-  
-  Object.entries(schedule).forEach(([dateStr, daySchedule]) => {
-    const date = new Date(dateStr);
-    if (isWeekend(date)) {
-      const hasShift = SHIFTS.some(shift => 
-        daySchedule[shift] && daySchedule[shift].includes(employee.id)
-      );
-      if (hasShift) count++;
-    }
-  });
-  
-  return count;
-}
-
 // Calculate shift distribution fairness
 function calculateShiftDistribution(employeeStats, employees) {
   const shiftDistribution = {};
@@ -223,11 +206,14 @@ export async function generateSchedule(employees, monthStr, settings) {
         !isEmployeeOnSickLeave(emp, sunday)
       );
       
-      // Sort by priority - updated to respect weekend limits
+      // Sort by priority - updated to respect weekend limits based on settings
       const sortedEmployees = availableForWeekend.sort((a, b) => {
         // Check weekend limits based on workload
-        const aMaxWeekends = a.workload > 50 ? 2 : 1;
-        const bMaxWeekends = b.workload > 50 ? 2 : 1;
+        const under50MaxWeekends = settings.weekendRules?.under50 || 1;
+        const over50MaxWeekends = settings.weekendRules?.over50 || 2;
+        
+        const aMaxWeekends = a.workload <= 50 ? under50MaxWeekends : over50MaxWeekends;
+        const bMaxWeekends = b.workload <= 50 ? under50MaxWeekends : over50MaxWeekends;
         
         const aWeekendCount = employeeWeekendShifts[a.id];
         const bWeekendCount = employeeWeekendShifts[b.id];
@@ -269,9 +255,13 @@ export async function generateSchedule(employees, monthStr, settings) {
           continue;
         }
         
+        // Get weekend limits based on settings
+        const under50MaxWeekends = settings.weekendRules?.under50 || 1;
+        const over50MaxWeekends = settings.weekendRules?.over50 || 2;
+        
         // Check if employee would exceed weekend limit
-        const maxWeekendShifts = employee.workload > 50 ? 2 : 1;
-        if (employeeWeekendShifts[employee.id] + 2 > maxWeekendShifts * 2) {
+        const maxWeekendShifts = employee.workload <= 50 ? under50MaxWeekends : over50MaxWeekends;
+        if (employeeWeekendShifts[employee.id] + 1 > maxWeekendShifts) {
           // Skip if this would exceed their limit
           continue;
         }
@@ -302,7 +292,7 @@ export async function generateSchedule(employees, monthStr, settings) {
         employeeHours[employee.id] += shiftDuration;
         employeeStats[employee.id][shift]++;
         employeeStats[employee.id].totalDays++;
-        employeeWeekendShifts[employee.id]++;
+        // Don't increment weekend shifts again since we're counting weekend days, not shifts
         // Note: we don't increment consecutive days again until we process regular days
         
         assignedEmployees.push(employee.id);
@@ -350,9 +340,12 @@ export async function generateSchedule(employees, monthStr, settings) {
       
       // Sort by priority
       const sortedForRedistribution = unassignedEmployees.sort((a, b) => {
-        // Check weekend limits
-        const aMaxWeekends = a.workload > 50 ? 2 : 1;
-        const bMaxWeekends = b.workload > 50 ? 2 : 1;
+        // Check weekend limits based on settings
+        const under50MaxWeekends = settings.weekendRules?.under50 || 1;
+        const over50MaxWeekends = settings.weekendRules?.over50 || 2;
+        
+        const aMaxWeekends = a.workload <= 50 ? under50MaxWeekends : over50MaxWeekends;
+        const bMaxWeekends = b.workload <= 50 ? under50MaxWeekends : over50MaxWeekends;
         
         const aWeekendCount = employeeWeekendShifts[a.id];
         const bWeekendCount = employeeWeekendShifts[b.id];
@@ -380,9 +373,13 @@ export async function generateSchedule(employees, monthStr, settings) {
           for (let i = 0; i < neededMore && i < eligibleEmployees.length; i++) {
             const employee = eligibleEmployees[i];
             
+            // Get weekend limits based on settings
+            const under50MaxWeekends = settings.weekendRules?.under50 || 1;
+            const over50MaxWeekends = settings.weekendRules?.over50 || 2;
+            
             // Check if employee would exceed weekend limit
-            const maxWeekendShifts = employee.workload > 50 ? 2 : 1;
-            if (employeeWeekendShifts[employee.id] + 2 > maxWeekendShifts * 2) {
+            const maxWeekendShifts = employee.workload <= 50 ? under50MaxWeekends : over50MaxWeekends;
+            if (employeeWeekendShifts[employee.id] + 1 > maxWeekendShifts) {
               continue;
             }
             
@@ -412,7 +409,7 @@ export async function generateSchedule(employees, monthStr, settings) {
             employeeHours[employee.id] += shiftDuration;
             employeeStats[employee.id][shift]++;
             employeeStats[employee.id].totalDays++;
-            employeeWeekendShifts[employee.id]++;
+            // Don't increment weekend shifts again since we're counting weekend days, not shifts
           }
         }
       }
@@ -571,6 +568,28 @@ export async function generateSchedule(employees, monthStr, settings) {
     });
   }
   
+  // Count weekend days
+  for (const empId in employeeWeekendShifts) {
+    // Count weekend days, not individual shifts
+    let weekendDays = 0;
+    
+    Object.entries(schedule).forEach(([dateStr, daySchedule]) => {
+      const date = new Date(dateStr);
+      if (isWeekend(date)) {
+        // Check if employee is working this day in any shift
+        const isWorking = SHIFTS.some(shift => 
+          daySchedule[shift] && daySchedule[shift].includes(empId)
+        );
+        if (isWorking) {
+          weekendDays++;
+        }
+      }
+    });
+    
+    // Update the weekend shifts count
+    employeeWeekendShifts[empId] = weekendDays;
+  }
+  
   // Check if employees meet their target hours
   employees.forEach(emp => {
     const actualHours = employeeHours[emp.id];
@@ -678,8 +697,11 @@ function prioritizeEmployeesWithFairness(employees, employeeHours, targetHours, 
   return employees.sort((a, b) => {
     // If it's a weekend day, check weekend allocation limits
     if (isWeekendDay) {
-      const aMaxWeekends = a.workload > 50 ? 2 : 1;
-      const bMaxWeekends = b.workload > 50 ? 2 : 1;
+      const under50MaxWeekends = settings.weekendRules?.under50 || 1;
+      const over50MaxWeekends = settings.weekendRules?.over50 || 2;
+      
+      const aMaxWeekends = a.workload <= 50 ? under50MaxWeekends : over50MaxWeekends;
+      const bMaxWeekends = b.workload <= 50 ? under50MaxWeekends : over50MaxWeekends;
       
       const aWeekendCount = employeeWeekendShifts[a.id];
       const bWeekendCount = employeeWeekendShifts[b.id];
