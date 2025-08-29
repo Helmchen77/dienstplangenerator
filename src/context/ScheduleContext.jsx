@@ -13,6 +13,7 @@ const initialState = {
       skills: ['früh', 'zwischen', 'spät'],
       maxConsecutiveDays: 4,
       sickLeave: { from: '', to: '' },
+      vacation: { from: '', to: '' }, // Added vacation
       availableDays: {
         monday: true,
         tuesday: true,
@@ -31,6 +32,7 @@ const initialState = {
       skills: ['früh', 'zwischen', 'spät'],
       maxConsecutiveDays: 3,
       sickLeave: { from: '', to: '' },
+      vacation: { from: '', to: '' }, // Added vacation
       availableDays: {
         monday: true,
         tuesday: true,
@@ -49,6 +51,7 @@ const initialState = {
       skills: ['zwischen', 'spät'],
       maxConsecutiveDays: 3,
       sickLeave: { from: '', to: '' },
+      vacation: { from: '', to: '' }, // Added vacation
       availableDays: {
         monday: true,
         tuesday: true,
@@ -84,7 +87,7 @@ const initialState = {
     },
     weekendRules: {
       under50: 1, // Max weekend days per month for employees with workload <= 50%
-      over50: 2   // Max weekend days per month for employees with workload > 50%
+      over50: 2  // Max weekend days per month for employees with workload > 50%
     },
     webhooks: {
       schedule: '',
@@ -111,7 +114,7 @@ function scheduleReducer(state, action) {
       return { ...state, schedules: action.payload };
       
     case 'SET_SETTINGS':
-      return { ...state, settings: { ...state.settings, ...action.payload }};
+      return { ...state, settings: { ...state.settings, ...action.payload } };
       
     case 'ADD_EMPLOYEE':
       return {
@@ -123,6 +126,7 @@ function scheduleReducer(state, action) {
             id: action.payload.id || Date.now(),
             maxConsecutiveDays: action.payload.maxConsecutiveDays || 4,
             sickLeave: action.payload.sickLeave || { from: '', to: '' },
+            vacation: action.payload.vacation || { from: '', to: '' },
             availableDays: action.payload.availableDays || {
               monday: true,
               tuesday: true,
@@ -158,7 +162,7 @@ function scheduleReducer(state, action) {
       const newSchedules = [...state.schedules, action.payload]
         .sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt))
         .slice(0, 50);
-      
+        
       return {
         ...state,
         schedules: newSchedules,
@@ -166,14 +170,14 @@ function scheduleReducer(state, action) {
       };
       
     case 'DELETE_SCHEDULE':
-      const updatedSchedules = state.schedules.filter(s => s.id !== action.payload);
+      const filteredSchedules = state.schedules.filter(s => s.id !== action.payload);
       const updatedCurrentSchedule = state.currentSchedule && state.currentSchedule.id === action.payload
-        ? updatedSchedules[0] || null
+        ? filteredSchedules[0] || null
         : state.currentSchedule;
         
       return {
         ...state,
-        schedules: updatedSchedules,
+        schedules: filteredSchedules,
         currentSchedule: updatedCurrentSchedule
       };
       
@@ -188,10 +192,7 @@ function scheduleReducer(state, action) {
         ...state,
         settings: {
           ...state.settings,
-          weekendRules: {
-            ...state.settings.weekendRules,
-            ...action.payload
-          }
+          weekendRules: { ...state.settings.weekendRules, ...action.payload }
         }
       };
       
@@ -234,7 +235,6 @@ function scheduleReducer(state, action) {
       );
       
       let schedulesList = [...state.schedules];
-      
       if (existingScheduleIndex >= 0) {
         // Replace existing schedule
         schedulesList[existingScheduleIndex] = {
@@ -272,7 +272,6 @@ export function ScheduleProvider({ children }) {
   useEffect(() => {
     const loadData = async () => {
       dispatch({ type: 'SET_LOADING', payload: true });
-      
       try {
         // Load data from local storage first (for backwards compatibility)
         const savedData = localStorage.getItem('dienstplan-data');
@@ -285,7 +284,7 @@ export function ScheduleProvider({ children }) {
             console.error('Error parsing local data:', error);
           }
         }
-        
+
         // Load employees from database
         const employees = await DatabaseService.loadEmployees();
         if (employees && employees.length > 0) {
@@ -299,7 +298,7 @@ export function ScheduleProvider({ children }) {
           }
           dispatch({ type: 'SET_EMPLOYEES', payload: updatedEmployees });
         }
-        
+
         // Load schedules from database
         const schedules = await DatabaseService.loadSchedules();
         if (schedules && schedules.length > 0) {
@@ -320,7 +319,6 @@ export function ScheduleProvider({ children }) {
             const savedSchedule = await DatabaseService.saveSchedule(schedule);
             updatedSchedules.push(savedSchedule);
           }
-          
           dispatch({ type: 'SET_SCHEDULES', payload: updatedSchedules });
           
           if (localData.currentSchedule) {
@@ -329,7 +327,7 @@ export function ScheduleProvider({ children }) {
             dispatch({ type: 'SET_CURRENT_SCHEDULE', payload: currentSchedule });
           }
         }
-        
+
         // Load settings from database
         const settings = await DatabaseService.loadSettings();
         if (settings) {
@@ -338,12 +336,8 @@ export function ScheduleProvider({ children }) {
           // Use local data as fallback and save to database
           const updatedSettings = {
             ...localData.settings,
-            weekendRules: localData.settings.weekendRules || {
-              under50: 1,
-              over50: 2
-            }
+            weekendRules: localData.settings.weekendRules || { under50: 1, over50: 2 }
           };
-          
           await DatabaseService.saveSettings(updatedSettings);
           dispatch({ type: 'SET_SETTINGS', payload: updatedSettings });
         }
@@ -357,7 +351,7 @@ export function ScheduleProvider({ children }) {
     
     loadData();
   }, []);
-  
+
   // Save data to database when it changes
   useEffect(() => {
     const saveData = async () => {
@@ -407,7 +401,7 @@ export function ScheduleProvider({ children }) {
     
     saveSettings();
   }, [state.settings]);
-  
+
   return (
     <ScheduleContext.Provider value={{ state, dispatch }}>
       {children}

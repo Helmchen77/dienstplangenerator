@@ -6,7 +6,7 @@ import supabase from '../lib/supabase';
 export default class DatabaseService {
   /**
    * Save employee data to database
-   * 
+   *
    * @param {Object} employee - The employee data to save
    * @returns {Promise<Object>} - The saved employee data with ID
    */
@@ -19,6 +19,7 @@ export default class DatabaseService {
         preferences: employee.preferences,
         max_consecutive_days: employee.maxConsecutiveDays,
         sick_leave: employee.sickLeave,
+        vacation: employee.vacation, // Added vacation field
         available_days: employee.availableDays
       };
       
@@ -29,7 +30,7 @@ export default class DatabaseService {
           .update(employeeData)
           .eq('id', employee.id)
           .select();
-        
+          
         if (error) throw error;
         return data[0] ? transformEmployeeFromDb(data[0]) : employee;
       } else {
@@ -38,7 +39,7 @@ export default class DatabaseService {
           .from('employees_helm')
           .insert(employeeData)
           .select();
-        
+          
         if (error) throw error;
         return data[0] ? transformEmployeeFromDb(data[0]) : employee;
       }
@@ -54,7 +55,7 @@ export default class DatabaseService {
 
   /**
    * Delete an employee from the database
-   * 
+   *
    * @param {string} employeeId - The ID of the employee to delete
    * @returns {Promise<boolean>} - Success status
    */
@@ -66,7 +67,7 @@ export default class DatabaseService {
           .from('employees_helm')
           .delete()
           .eq('id', employeeId);
-        
+          
         if (error) throw error;
       }
       return true;
@@ -78,7 +79,7 @@ export default class DatabaseService {
 
   /**
    * Load all employees from database
-   * 
+   *
    * @returns {Promise<Array>} - Array of employee objects
    */
   static async loadEmployees() {
@@ -86,7 +87,7 @@ export default class DatabaseService {
       const { data, error } = await supabase
         .from('employees_helm')
         .select('*');
-      
+        
       if (error) throw error;
       
       // Transform database format to application format
@@ -99,7 +100,7 @@ export default class DatabaseService {
 
   /**
    * Save a schedule to the database
-   * 
+   *
    * @param {Object} schedule - The schedule to save
    * @returns {Promise<Object>} - The saved schedule with ID
    */
@@ -123,7 +124,7 @@ export default class DatabaseService {
           .update(scheduleData)
           .eq('id', schedule.id)
           .select();
-        
+          
         if (error) throw error;
         return data[0] ? transformScheduleFromDb(data[0]) : schedule;
       } else {
@@ -132,7 +133,7 @@ export default class DatabaseService {
           .from('schedules_helm')
           .insert(scheduleData)
           .select();
-        
+          
         if (error) throw error;
         return data[0] ? transformScheduleFromDb(data[0]) : schedule;
       }
@@ -148,7 +149,7 @@ export default class DatabaseService {
 
   /**
    * Delete a schedule from the database
-   * 
+   *
    * @param {string} scheduleId - The ID of the schedule to delete
    * @returns {Promise<boolean>} - Success status
    */
@@ -159,7 +160,7 @@ export default class DatabaseService {
           .from('schedules_helm')
           .delete()
           .eq('id', scheduleId);
-        
+          
         if (error) throw error;
       }
       return true;
@@ -171,7 +172,7 @@ export default class DatabaseService {
 
   /**
    * Load all schedules from database
-   * 
+   *
    * @returns {Promise<Array>} - Array of schedule objects
    */
   static async loadSchedules() {
@@ -180,7 +181,7 @@ export default class DatabaseService {
         .from('schedules_helm')
         .select('*')
         .order('created_at', { ascending: false });
-      
+        
       if (error) throw error;
       
       // Transform database format to application format
@@ -193,7 +194,7 @@ export default class DatabaseService {
 
   /**
    * Save settings to database
-   * 
+   *
    * @param {Object} settings - The settings to save
    * @returns {Promise<Object>} - The saved settings
    */
@@ -216,7 +217,7 @@ export default class DatabaseService {
         .from('settings_helm')
         .select('id')
         .limit(1);
-      
+        
       if (existingSettings && existingSettings.length > 0) {
         // Update existing settings
         const { data, error } = await supabase
@@ -224,7 +225,7 @@ export default class DatabaseService {
           .update(settingsData)
           .eq('id', existingSettings[0].id)
           .select();
-        
+          
         if (error) throw error;
         return data[0] ? transformSettingsFromDb(data[0]) : settings;
       } else {
@@ -233,7 +234,7 @@ export default class DatabaseService {
           .from('settings_helm')
           .insert(settingsData)
           .select();
-        
+          
         if (error) throw error;
         return data[0] ? transformSettingsFromDb(data[0]) : settings;
       }
@@ -245,7 +246,7 @@ export default class DatabaseService {
 
   /**
    * Load settings from database
-   * 
+   *
    * @returns {Promise<Object>} - The settings object
    */
   static async loadSettings() {
@@ -254,13 +255,12 @@ export default class DatabaseService {
         .from('settings_helm')
         .select('*')
         .limit(1);
-      
+        
       if (error) throw error;
       
       if (data && data.length > 0) {
         return transformSettingsFromDb(data[0]);
       }
-      
       return null;
     } catch (error) {
       console.error('Error loading settings:', error);
@@ -271,7 +271,7 @@ export default class DatabaseService {
 
 /**
  * Transform an employee from database format to application format
- * 
+ *
  * @param {Object} dbEmployee - The employee in database format
  * @returns {Object} - The employee in application format
  */
@@ -284,6 +284,7 @@ function transformEmployeeFromDb(dbEmployee) {
     preferences: dbEmployee.preferences || [],
     maxConsecutiveDays: dbEmployee.max_consecutive_days || 4,
     sickLeave: dbEmployee.sick_leave || { from: '', to: '' },
+    vacation: dbEmployee.vacation || { from: '', to: '' }, // Added vacation
     availableDays: dbEmployee.available_days || {
       monday: true,
       tuesday: true,
@@ -298,7 +299,7 @@ function transformEmployeeFromDb(dbEmployee) {
 
 /**
  * Transform a schedule from database format to application format
- * 
+ *
  * @param {Object} dbSchedule - The schedule in database format
  * @returns {Object} - The schedule in application format
  */
@@ -312,13 +313,15 @@ function transformScheduleFromDb(dbSchedule) {
     employeeStats: dbSchedule.employee_stats || {},
     targetHours: dbSchedule.target_hours || {},
     employeeWeekendShifts: dbSchedule.employee_weekend_shifts || {},
-    createdAt: dbSchedule.created_at
+    createdAt: dbSchedule.created_at,
+    explanations: dbSchedule.explanations || [],
+    daysWithoutZwischendienst: dbSchedule.days_without_zwischendienst || []
   };
 }
 
 /**
  * Transform settings from database format to application format
- * 
+ *
  * @param {Object} dbSettings - The settings in database format
  * @returns {Object} - The settings in application format
  */
@@ -343,9 +346,6 @@ function transformSettingsFromDb(dbSettings) {
       minDaysOffBetweenBlocks: 2
     },
     holidays: dbSettings.holidays || [],
-    weekendRules: dbSettings.weekend_rules || {
-      under50: 1,
-      over50: 2
-    }
+    weekendRules: dbSettings.weekend_rules || { under50: 1, over50: 2 }
   };
 }

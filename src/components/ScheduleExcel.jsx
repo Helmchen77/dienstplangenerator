@@ -11,6 +11,8 @@ function ScheduleExcel({ schedule, employees, settings, onClose }) {
   const monthStart = startOfMonth(monthDate);
   const monthEnd = endOfMonth(monthDate);
   const days = eachDayOfInterval({ start: monthStart, end: monthEnd });
+  const daysWithoutZwischendienst = schedule.daysWithoutZwischendienst || [];
+  const explanations = schedule.explanations || [];
 
   const getEmployeeName = (employeeId) => {
     const employee = employees.find(emp => emp.id === employeeId);
@@ -23,6 +25,46 @@ function ScheduleExcel({ schedule, employees, settings, onClose }) {
     return minutes > 0 ? `${wholeHours}h ${minutes}min` : `${wholeHours}h`;
   };
 
+  // Get the main explanation reason for the schedule issues
+  const getMainExplanationReason = () => {
+    if (!explanations || explanations.length === 0) return null;
+    
+    // Check for staff shortage
+    const staffingShortage = explanations.find(exp => exp.type === 'staffing_shortage');
+    if (staffingShortage) {
+      return "Zu wenig Gesamtressourcen";
+    }
+    
+    // Check for many free preferences
+    const tooManyFreeWishes = explanations.find(exp => exp.type === 'many_free_preferences');
+    if (tooManyFreeWishes) {
+      return "Zu viele Freiwünsche";
+    }
+    
+    // Check for sick leaves
+    const highSickLeave = explanations.find(exp => exp.type === 'high_sick_leave');
+    if (highSickLeave) {
+      return "Zu viele Krankheitstage";
+    }
+    
+    // Check for skill shortage
+    const skillShortage = explanations.find(exp => exp.type === 'skill_shortage');
+    if (skillShortage) {
+      return "Mangel an Qualifikationen";
+    }
+    
+    // Check for weekend constraints
+    const weekendConstraint = explanations.find(exp => exp.type === 'weekend_constraint');
+    if (weekendConstraint) {
+      return "Zu strikte Wochenendregeln";
+    }
+    
+    return "Mehrere Einschränkungen";
+  };
+  
+  // Call the function to get the main reason
+  const mainReason = getMainExplanationReason();
+
   const handleDownloadExcel = () => {
     // Create CSV content
     let csvContent = "data:text/csv;charset=utf-8,";
@@ -30,17 +72,22 @@ function ScheduleExcel({ schedule, employees, settings, onClose }) {
     // Header
     csvContent += `Dienstplan - ${format(monthDate, 'MMMM yyyy', { locale: de })}\n\n`;
     
+    // Main explanation reason
+    if (mainReason) {
+      csvContent += `Warum der Plan nicht optimal erstellt werden konnte: ${mainReason}\n\n`;
+    }
+    
     // Schedule table
     csvContent += "Datum,Wochentag,Frühdienst,Zwischendienst,Spätdienst\n";
-    
     days.forEach((day) => {
       const dateStr = format(day, 'yyyy-MM-dd');
       const daySchedule = schedule.schedule[dateStr] || {};
       const isWeekendDay = isWeekend(day);
+      const isZwischendienstOmitted = daysWithoutZwischendienst.includes(dateStr);
       
-      const frühNames = daySchedule.früh?.map(id => getEmployeeName(id)).join('; ') || '-';
-      const zwischenNames = daySchedule.zwischen?.map(id => getEmployeeName(id)).join('; ') || '-';
-      const spätNames = daySchedule.spät?.map(id => getEmployeeName(id)).join('; ') || '-';
+      const frühNames = daySchedule.früh?.map(id => getEmployeeName(id)).join(';') || '-';
+      const zwischenNames = isZwischendienstOmitted ? 'Entfällt' : (daySchedule.zwischen?.map(id => getEmployeeName(id)).join(';') || '-');
+      const spätNames = daySchedule.spät?.map(id => getEmployeeName(id)).join(';') || '-';
       
       csvContent += `${format(day, 'dd.MM.yyyy')},${format(day, 'EEEE', { locale: de })},${frühNames},${zwischenNames},${spätNames}\n`;
     });
@@ -59,16 +106,38 @@ function ScheduleExcel({ schedule, employees, settings, onClose }) {
     
     // Violations
     if (schedule.violations.length > 0) {
-      csvContent += "\n\nRegelverstöße\n";
+      csvContent += "\n\nRegelabweichungen\n";
       csvContent += "Typ,Details\n";
       
       schedule.violations.forEach((violation) => {
         if (violation.type === 'understaffed') {
-          csvContent += `Unterbesetzung,"${violation.date}: ${violation.shift}dienst (${violation.assigned}/${violation.required})"\n`;
+          const shiftName = violation.shift.charAt(0).toUpperCase() + violation.shift.slice(1);
+          csvContent += `Unterbesetzung,"${violation.date}: ${shiftName}dienst (${violation.assigned}/${violation.required})"\n`;
         }
+        
         if (violation.type === 'hours_mismatch') {
           csvContent += `Stunden-Abweichung,"${violation.employeeName}: ${formatHours(violation.actual)} statt ${formatHours(violation.target)}"\n`;
         }
+      });
+    }
+    
+    // Days without Zwischendienst
+    if (daysWithoutZwischendienst.length > 0) {
+      csvContent += "\n\nTage ohne Zwischendienst\n";
+      csvContent += "Datum\n";
+      
+      daysWithoutZwischendienst.forEach(dateStr => {
+        const date = new Date(dateStr);
+        csvContent += `${format(date, 'dd.MM.yyyy')},${format(date, 'EEEE', { locale: de })}\n`;
+      });
+    }
+    
+    // Detailed explanations
+    if (explanations && explanations.length > 0) {
+      csvContent += "\n\nDetaillierte Erklärungen\n";
+      
+      explanations.forEach(explanation => {
+        csvContent += `${explanation.message}\n`;
       });
     }
     
@@ -91,7 +160,6 @@ function ScheduleExcel({ schedule, employees, settings, onClose }) {
             <SafeIcon icon={FiX} className="w-6 h-6" />
           </button>
         </div>
-
         <div className="p-6">
           <div className="text-center">
             <div className="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-4">
@@ -109,11 +177,17 @@ function ScheduleExcel({ schedule, employees, settings, onClose }) {
                 <li>• Mitarbeiter-Statistiken</li>
                 <li>• Arbeitszeiten pro Mitarbeiter</li>
                 <li>• Schichtverteilung</li>
-                <li>• Regelverstöße (falls vorhanden)</li>
+                <li>• Regelabweichungen (falls vorhanden)</li>
                 <li>• Berücksichtigung der Arbeitspensen</li>
+                {mainReason && (
+                  <li>• Begründung warum der Plan nicht optimal erstellt werden konnte</li>
+                )}
+                {daysWithoutZwischendienst.length > 0 && (
+                  <li>• Tage ohne Zwischendienst</li>
+                )}
               </ul>
             </div>
-
+            
             <button
               onClick={handleDownloadExcel}
               className="flex items-center justify-center w-full px-6 py-3 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors mb-3"
@@ -121,7 +195,6 @@ function ScheduleExcel({ schedule, employees, settings, onClose }) {
               <SafeIcon icon={FiDownload} className="w-5 h-5 mr-2" />
               CSV-Datei herunterladen
             </button>
-            
             <p className="text-xs text-gray-500">
               Die CSV-Datei kann in Excel, Google Sheets oder anderen Tabellenkalkulationsprogrammen geöffnet werden.
             </p>

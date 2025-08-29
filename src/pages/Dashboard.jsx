@@ -12,12 +12,12 @@ function Dashboard() {
   const { state, dispatch } = useSchedule();
   const navigate = useNavigate();
   const { employees, schedules, currentSchedule } = state;
-  
+
   // Calculate coverage percentage if a current schedule exists
   let coveragePercentage = 0;
   if (currentSchedule) {
     coveragePercentage = calculateCoveragePercentage(
-      currentSchedule, 
+      currentSchedule,
       state.settings.minStaffing
     );
   }
@@ -85,7 +85,8 @@ function Dashboard() {
         <div className="p-6 neu-card">
           <h3 className="text-lg font-semibold text-gray-900 mb-4">Mitarbeiter Übersicht</h3>
           <div className="space-y-3">
-            {employees.slice(0, 5).map((employee) => (
+            {/* Show all employees instead of just the first 5 */}
+            {employees.map((employee) => (
               <div key={employee.id} className="flex items-center justify-between py-2 px-3 neu-element rounded-lg">
                 <div className="flex items-center">
                   <div className="w-8 h-8 neu-element-inset rounded-full flex items-center justify-center bg-primary-50">
@@ -114,6 +115,7 @@ function Dashboard() {
                   Plan erfolgreich erstellt
                 </p>
               </div>
+
               {coveragePercentage < 100 && (
                 <div className="neu-element p-4 bg-orange-50 rounded-lg mt-3">
                   <p className="text-sm text-orange-800 font-medium mb-2">Tipps zur Verbesserung der Dienstabdeckung:</p>
@@ -146,11 +148,7 @@ function Dashboard() {
             </p>
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
               {schedules.slice(0, 6).map((schedule, index) => (
-                <div 
-                  key={index} 
-                  className="p-3 neu-element rounded-lg cursor-pointer hover:bg-gray-50 transition-colors"
-                  onClick={() => handleScheduleClick(schedule)}
-                >
+                <div key={index} className="p-3 neu-element rounded-lg cursor-pointer hover:bg-gray-50 transition-colors" onClick={() => handleScheduleClick(schedule)}>
                   <div className="flex items-center">
                     <div className="w-8 h-8 neu-element-inset rounded-full flex items-center justify-center bg-primary-50 mr-3">
                       <SafeIcon icon={FiCalendar} className="w-4 h-4 text-primary-700" />
@@ -167,11 +165,9 @@ function Dashboard() {
                 </div>
               ))}
             </div>
+
             {schedules.length > 6 && (
-              <button 
-                onClick={() => navigate('/schedule')}
-                className="w-full mt-3 py-2 neu-button text-sm text-gray-700"
-              >
+              <button onClick={() => navigate('/schedule')} className="w-full mt-3 py-2 neu-button text-sm text-gray-700">
                 Alle Pläne anzeigen
               </button>
             )}

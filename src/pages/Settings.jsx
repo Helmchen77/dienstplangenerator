@@ -17,6 +17,7 @@ function Settings() {
     try {
       // Save settings to database
       await DatabaseService.saveSettings(settings);
+      
       // Update local state
       dispatch({ type: 'UPDATE_SETTINGS', payload: settings });
       alert('Einstellungen gespeichert!');
@@ -212,7 +213,6 @@ function Settings() {
           </div>
           <h3 className="text-lg font-semibold text-gray-900">Wochenendregeln</h3>
         </div>
-        
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
           <div className="p-4 neu-element rounded-lg">
             <h4 className="font-medium text-gray-900 mb-3">Mitarbeiter mit Pensum bis 50%</h4>
@@ -233,7 +233,6 @@ function Settings() {
               </p>
             </div>
           </div>
-          
           <div className="p-4 neu-element rounded-lg">
             <h4 className="font-medium text-gray-900 mb-3">Mitarbeiter mit Pensum über 50%</h4>
             <div className="space-y-2">
@@ -373,7 +372,7 @@ function Settings() {
       </div>
 
       <div className="flex justify-end">
-        <button 
+        <button
           onClick={handleSave}
           disabled={isSaving}
           className="flex items-center px-6 py-3 neu-button bg-orange-50 text-orange-700"

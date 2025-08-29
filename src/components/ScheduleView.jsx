@@ -122,13 +122,13 @@ function ScheduleView() {
 
   // Get the explanations if they exist
   const explanations = currentSchedule.explanations || [];
-  
+
   // Get days without Zwischendienst
   const daysWithoutZwischendienst = currentSchedule.daysWithoutZwischendienst || [];
-  
+
   // Check if we should show the suggestions button
   const shouldShowSuggestionsButton = suggestions.length > 0 || explanations.length > 0 || daysWithoutZwischendienst.length > 0;
-  
+
   // Get the main explanation reason for the schedule issues
   const getMainExplanationReason = () => {
     if (!explanations || explanations.length === 0) return null;
@@ -183,7 +183,7 @@ function ScheduleView() {
       message: "Eine Kombination verschiedener Faktoren verhindert eine optimale Planerstellung."
     };
   };
-  
+
   const mainReason = getMainExplanationReason();
 
   return (
@@ -197,30 +197,30 @@ function ScheduleView() {
         </div>
         <div className="flex items-center space-x-3">
           <button onClick={() => setShowArchive(!showArchive)} className="flex items-center px-4 py-2 neu-button">
-            <SafeIcon icon={FiCalendar} className="w-5 h-5 mr-2" />
-            Archiv
+            <SafeIcon icon={FiCalendar} className="w-5 h-5 mr-2" /> Archiv
           </button>
           
           {shouldShowSuggestionsButton && (
             <button onClick={() => setShowSuggestions(!showSuggestions)} className="flex items-center px-4 py-2 neu-button bg-orange-50 text-orange-700">
-              <SafeIcon icon={FiInfo} className="w-5 h-5 mr-2" />
-              Verbesserungsvorschläge
+              <SafeIcon icon={FiInfo} className="w-5 h-5 mr-2" /> Verbesserungsvorschläge
             </button>
           )}
           
-          <button onClick={toggleViewMode} className="flex items-center px-4 py-2 neu-button" title={viewMode === 'horizontal' ? 'Vertikale Ansicht' : 'Horizontale Ansicht'}>
+          <button 
+            onClick={toggleViewMode} 
+            className="flex items-center px-4 py-2 neu-button" 
+            title={viewMode === 'horizontal' ? 'Vertikale Ansicht' : 'Horizontale Ansicht'}
+          >
             <SafeIcon icon={viewMode === 'horizontal' ? FiList : FiColumns} className="w-5 h-5 mr-2" />
             {viewMode === 'horizontal' ? 'Vertikale Ansicht' : 'Horizontale Ansicht'}
           </button>
           
           <button onClick={() => setShowExcel(true)} className="flex items-center px-4 py-2 neu-button bg-green-50 text-green-700">
-            <SafeIcon icon={FiFileText} className="w-5 h-5 mr-2" />
-            Excel Export
+            <SafeIcon icon={FiFileText} className="w-5 h-5 mr-2" /> Excel Export
           </button>
           
           <button onClick={() => setShowPDF(true)} className="flex items-center px-4 py-2 neu-button bg-primary-50 text-primary-700">
-            <SafeIcon icon={FiDownload} className="w-5 h-5 mr-2" />
-            PDF Export
+            <SafeIcon icon={FiDownload} className="w-5 h-5 mr-2" /> PDF Export
           </button>
         </div>
       </div>
@@ -240,7 +240,10 @@ function ScheduleView() {
                 className={`p-3 neu-element rounded-lg hover:bg-gray-50 transition-colors ${currentSchedule.month === schedule.month ? 'bg-orange-50 border border-orange-200' : ''}`}
               >
                 <div className="flex items-center justify-between">
-                  <div className="flex items-center flex-1 cursor-pointer" onClick={() => handleScheduleSelect(schedule)}>
+                  <div 
+                    className="flex items-center flex-1 cursor-pointer" 
+                    onClick={() => handleScheduleSelect(schedule)}
+                  >
                     <div className="w-8 h-8 neu-element-inset rounded-full flex items-center justify-center bg-primary-50 mr-3">
                       <SafeIcon icon={FiCalendar} className="w-4 h-4 text-primary-700" />
                     </div>
@@ -249,13 +252,13 @@ function ScheduleView() {
                         {new Date(schedule.month + '-01').toLocaleDateString('de-DE', {month: 'long', year: 'numeric'})}
                       </p>
                       <p className="text-xs text-gray-500">
-                        Erstellt am {new Date(schedule.createdAt).toLocaleDateString('de-DE')} {new Date(schedule.createdAt).toLocaleTimeString('de-DE', {hour: '2-digit', minute: '2-digit'})}
+                        Erstellt am {new Date(schedule.createdAt).toLocaleDateString('de-DE')}
                       </p>
                     </div>
                   </div>
                   <button 
-                    onClick={(e) => {e.stopPropagation(); handleDeleteSchedule(schedule.id);}} 
-                    className="p-2 text-gray-400 hover:text-red-600" 
+                    onClick={(e) => {e.stopPropagation(); handleDeleteSchedule(schedule.id);}}
+                    className="p-2 text-gray-400 hover:text-red-600"
                     title="Dienstplan löschen"
                   >
                     <SafeIcon icon={FiTrash2} className="w-4 h-4" />
@@ -275,6 +278,7 @@ function ScheduleView() {
               <SafeIcon icon={FiX} className="w-5 h-5" />
             </button>
           </div>
+          
           <div className="space-y-4">
             {/* Show main explanation reason */}
             {mainReason && (
@@ -284,6 +288,7 @@ function ScheduleView() {
                   <p className="font-medium text-orange-800">{mainReason.title}</p>
                   <p className="text-sm text-gray-700 mt-1">{mainReason.message}</p>
                 </div>
+                
                 <div className="space-y-2 mt-4">
                   <p className="text-sm font-medium text-gray-700">Detaillierte Gründe:</p>
                   {explanations.map((explanation, index) => (
@@ -311,11 +316,12 @@ function ScheduleView() {
                 </div>
               </div>
             )}
-            
+
             {/* Show other suggestions */}
             {suggestions.map((suggestion, index) => (
               <div key={index} className="p-4 bg-white rounded-lg neu-element">
                 <h4 className="font-medium text-orange-800 mb-2">{suggestion.title}</h4>
+                
                 {suggestion.type === 'critical_days' && (
                   <div>
                     <p className="text-sm text-gray-700 mb-2">
@@ -419,12 +425,8 @@ function ScheduleView() {
           <div className="space-y-1 ml-11">
             {currentSchedule.violations.map((violation, index) => (
               <p key={index} className="text-sm text-yellow-700">
-                {violation.type === 'understaffed' && 
-                  `${violation.date}: Unterbesetzung im ${violation.shift.charAt(0).toUpperCase() + violation.shift.slice(1)}dienst (${violation.assigned}/${violation.required})`
-                }
-                {violation.type === 'hours_mismatch' && 
-                  `${violation.employeeName}: Stunden-Abweichung (${formatHours(violation.actual)} statt ${formatHours(violation.target)})`
-                }
+                {violation.type === 'understaffed' && `${violation.date}: Unterbesetzung im ${violation.shift.charAt(0).toUpperCase() + violation.shift.slice(1)}dienst (${violation.assigned}/${violation.required})`}
+                {violation.type === 'hours_mismatch' && `${violation.employeeName}: Stunden-Abweichung (${formatHours(violation.actual)} statt ${formatHours(violation.target)})`}
               </p>
             ))}
           </div>
@@ -460,17 +462,17 @@ function ScheduleView() {
                   Soll-Stunden
                 </th>
                 <th className="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  Wochenendtage
+                  Wochenenden
                 </th>
               </tr>
             </thead>
             <tbody className="bg-white divide-y divide-gray-200">
               {employees.map((employee) => {
-                const stats = currentSchedule.employeeStats?.[employee.id] || {früh: 0, zwischen: 0, spät: 0, totalDays: 0};
+                const stats = currentSchedule.employeeStats?.[employee.id] || { früh: 0, zwischen: 0, spät: 0, totalDays: 0 };
                 const actualHours = currentSchedule.employeeHours?.[employee.id] || 0;
                 const targetHours = currentSchedule.targetHours?.[employee.id] || 0;
-                const weekendDays = currentSchedule.employeeWeekendShifts?.[employee.id] || 0;
-                const maxWeekendDays = getWeekendLimit(employee);
+                const weekendCount = currentSchedule.employeeWeekendShifts?.[employee.id] || 0;
+                const maxWeekends = getWeekendLimit(employee);
                 
                 return (
                   <tr key={employee.id} className="hover:bg-gray-50">
@@ -509,8 +511,8 @@ function ScheduleView() {
                       {formatHours(targetHours)}
                     </td>
                     <td className="px-4 py-4 whitespace-nowrap text-center">
-                      <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${weekendDays > maxWeekendDays ? 'bg-red-50 text-red-700' : 'bg-green-50 text-green-700'}`}>
-                        {weekendDays} / {maxWeekendDays}
+                      <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${weekendCount > maxWeekends ? 'bg-red-50 text-red-700' : 'bg-green-50 text-green-700'}`}>
+                        {weekendCount} / {maxWeekends}
                       </span>
                     </td>
                   </tr>
@@ -556,10 +558,13 @@ function ScheduleView() {
                   const isZwischendienstOmitted = daysWithoutZwischendienst.includes(dateStr);
                   
                   return (
-                    <tr key={dateStr} className={`
-                      ${isWeekendDay ? 'bg-blue-50' : 'hover:bg-gray-50'}
-                      ${isHoliday ? 'bg-orange-100' : ''}
-                    `}>
+                    <tr 
+                      key={dateStr} 
+                      className={`
+                        ${isWeekendDay ? 'bg-blue-50' : 'hover:bg-gray-50'}
+                        ${isHoliday ? 'bg-orange-100' : ''}
+                      `}
+                    >
                       <td className="px-4 py-3 whitespace-nowrap">
                         <div className="text-sm font-medium text-gray-900">
                           {format(day, 'dd.MM.yyyy')}
@@ -631,7 +636,7 @@ function ScheduleView() {
             </div>
           </div>
         </div>
-
+        
         <div className="p-6 neu-card">
           <h3 className="text-lg font-semibold text-gray-900 mb-4">Schichtverteilung</h3>
           <div className="space-y-2">
@@ -643,7 +648,7 @@ function ScheduleView() {
             ))}
           </div>
         </div>
-
+        
         <div className="p-6 neu-card">
           <h3 className="text-lg font-semibold text-gray-900 mb-4">Arbeitszeiten</h3>
           <div className="space-y-2 text-sm text-gray-600">
@@ -668,7 +673,7 @@ function ScheduleView() {
           onClose={() => setShowPDF(false)}
         />
       )}
-      
+
       {showExcel && (
         <ScheduleExcel
           schedule={currentSchedule}

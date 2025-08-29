@@ -13,6 +13,8 @@ function SchedulePDF({ schedule, employees, settings, onClose }) {
   const monthStart = startOfMonth(monthDate);
   const monthEnd = endOfMonth(monthDate);
   const days = eachDayOfInterval({ start: monthStart, end: monthEnd });
+  const daysWithoutZwischendienst = schedule.daysWithoutZwischendienst || [];
+  const explanations = schedule.explanations || [];
 
   const getEmployeeName = (employeeId) => {
     const employee = employees.find(emp => emp.id === employeeId);
@@ -25,33 +27,68 @@ function SchedulePDF({ schedule, employees, settings, onClose }) {
     return minutes > 0 ? `${wholeHours}h ${minutes}min` : `${wholeHours}h`;
   };
 
+  // Get the main explanation reason for the schedule issues
+  const getMainExplanationReason = () => {
+    if (!explanations || explanations.length === 0) return null;
+    
+    // Check for staff shortage
+    const staffingShortage = explanations.find(exp => exp.type === 'staffing_shortage');
+    if (staffingShortage) {
+      return "Zu wenig Gesamtressourcen";
+    }
+    
+    // Check for many free preferences
+    const tooManyFreeWishes = explanations.find(exp => exp.type === 'many_free_preferences');
+    if (tooManyFreeWishes) {
+      return "Zu viele Freiwünsche";
+    }
+    
+    // Check for sick leaves
+    const highSickLeave = explanations.find(exp => exp.type === 'high_sick_leave');
+    if (highSickLeave) {
+      return "Zu viele Krankheitstage";
+    }
+    
+    // Check for skill shortage
+    const skillShortage = explanations.find(exp => exp.type === 'skill_shortage');
+    if (skillShortage) {
+      return "Mangel an Qualifikationen";
+    }
+    
+    // Check for weekend constraints
+    const weekendConstraint = explanations.find(exp => exp.type === 'weekend_constraint');
+    if (weekendConstraint) {
+      return "Zu strikte Wochenendregeln";
+    }
+    
+    return "Mehrere Einschränkungen";
+  };
+
+  const mainReason = getMainExplanationReason();
+
   const handleDownloadPDF = async () => {
     const element = document.getElementById('schedule-pdf-content');
-    
     try {
       const canvas = await html2canvas(element, {
         scale: 2,
         useCORS: true,
         allowTaint: true
       });
-      
       const imgData = canvas.toDataURL('image/png');
       const pdf = new jsPDF({
         orientation: 'landscape',
         unit: 'mm',
         format: 'a4'
       });
-      
       const imgWidth = 297; // A4 landscape width
       const pageHeight = 210; // A4 landscape height
       const imgHeight = (canvas.height * imgWidth) / canvas.width;
       let heightLeft = imgHeight;
-      
       let position = 0;
-      
+
       pdf.addImage(imgData, 'PNG', 0, position, imgWidth, imgHeight);
       heightLeft -= pageHeight;
-      
+
       while (heightLeft >= 0) {
         position = heightLeft - imgHeight;
         pdf.addPage();
@@ -103,6 +140,14 @@ function SchedulePDF({ schedule, employees, settings, onClose }) {
               {format(monthDate, 'MMMM yyyy', { locale: de })}
             </h2>
           </div>
+
+          {/* Main explanation reason if exists */}
+          {mainReason && (
+            <div className="mb-6 p-4 bg-orange-50 border border-orange-200 rounded-lg">
+              <h3 className="text-md font-semibold text-gray-900 mb-2">Warum der Plan nicht optimal erstellt werden konnte</h3>
+              <p className="text-md text-gray-800">{mainReason}</p>
+            </div>
+          )}
 
           {/* Mitarbeiter Statistiken */}
           <div className="mb-8">
@@ -167,6 +212,7 @@ function SchedulePDF({ schedule, employees, settings, onClose }) {
                   const dateStr = format(day, 'yyyy-MM-dd');
                   const daySchedule = schedule.schedule[dateStr] || {};
                   const isWeekendDay = isWeekend(day);
+                  const isZwischendienstOmitted = daysWithoutZwischendienst.includes(dateStr);
                   
                   return (
                     <tr key={dateStr} className={isWeekendDay ? 'bg-blue-50' : ''}>
@@ -178,19 +224,41 @@ function SchedulePDF({ schedule, employees, settings, onClose }) {
                           {format(day, 'EEEE', { locale: de })}
                         </div>
                       </td>
-                      {['früh', 'zwischen', 'spät'].map((shift) => (
-                        <td key={shift} className="border border-gray-300 px-3 py-2">
-                          <div className="space-y-1">
-                            {daySchedule[shift]?.map((employeeId) => (
-                              <div key={employeeId} className="text-sm text-gray-900">
-                                {getEmployeeName(employeeId)}
-                              </div>
-                            )) || (
-                              <span className="text-xs text-gray-400">-</span>
-                            )}
-                          </div>
-                        </td>
-                      ))}
+                      <td className="border border-gray-300 px-3 py-2">
+                        <div className="space-y-1">
+                          {daySchedule['früh']?.map((employeeId) => (
+                            <div key={employeeId} className="text-sm text-gray-900">
+                              {getEmployeeName(employeeId)}
+                            </div>
+                          )) || (
+                            <span className="text-xs text-gray-400">-</span>
+                          )}
+                        </div>
+                      </td>
+                      <td className="border border-gray-300 px-3 py-2">
+                        <div className="space-y-1">
+                          {isZwischendienstOmitted ? (
+                            <span className="text-xs text-orange-600 font-medium">Entfällt</span>
+                          ) : daySchedule['zwischen']?.map((employeeId) => (
+                            <div key={employeeId} className="text-sm text-gray-900">
+                              {getEmployeeName(employeeId)}
+                            </div>
+                          )) || (
+                            <span className="text-xs text-gray-400">-</span>
+                          )}
+                        </div>
+                      </td>
+                      <td className="border border-gray-300 px-3 py-2">
+                        <div className="space-y-1">
+                          {daySchedule['spät']?.map((employeeId) => (
+                            <div key={employeeId} className="text-sm text-gray-900">
+                              {getEmployeeName(employeeId)}
+                            </div>
+                          )) || (
+                            <span className="text-xs text-gray-400">-</span>
+                          )}
+                        </div>
+                      </td>
                     </tr>
                   );
                 })}
@@ -202,23 +270,22 @@ function SchedulePDF({ schedule, employees, settings, onClose }) {
             <div>
               <h3 className="text-lg font-semibold text-gray-900 mb-4">Legende</h3>
               <div className="space-y-2 text-sm text-gray-600">
-                <div>• Frühdienst: {settings.shifts.früh.start} - {settings.shifts.früh.end} 
-                  ({settings.shifts.früh.hours}h {settings.shifts.früh.minutes}min)</div>
-                <div>• Zwischendienst: {settings.shifts.zwischen.start} - {settings.shifts.zwischen.end} 
-                  ({settings.shifts.zwischen.hours}h {settings.shifts.zwischen.minutes}min)</div>
-                <div>• Spätdienst: {settings.shifts.spät.start} - {settings.shifts.spät.end} 
-                  ({settings.shifts.spät.hours}h {settings.shifts.spät.minutes}min)</div>
+                <div>• Frühdienst: {settings.shifts.früh.start} - {settings.shifts.früh.end} ({settings.shifts.früh.hours}h {settings.shifts.früh.minutes}min)</div>
+                <div>• Zwischendienst: {settings.shifts.zwischen.start} - {settings.shifts.zwischen.end} ({settings.shifts.zwischen.hours}h {settings.shifts.zwischen.minutes}min)</div>
+                <div>• Spätdienst: {settings.shifts.spät.start} - {settings.shifts.spät.end} ({settings.shifts.spät.hours}h {settings.shifts.spät.minutes}min)</div>
                 <div>• Wochenenden sind blau markiert</div>
-                <div>• Max. aufeinanderfolgende Tage: {settings.rules.maxConsecutiveDays}</div>
+                <div>• Max. aufeinanderfolgende Tage: Je nach Mitarbeiterkonfiguration</div>
+                {daysWithoutZwischendienst.length > 0 && (
+                  <div>• An manchen Tagen entfällt der Zwischendienst zur besseren Besetzung der anderen Dienste</div>
+                )}
               </div>
             </div>
-            
             <div>
               <h3 className="text-lg font-semibold text-gray-900 mb-4">Statistiken</h3>
               <div className="space-y-2 text-sm text-gray-600">
                 <div>Gesamt Arbeitstage: {days.length}</div>
-                <div>Wochenenden: {days.filter(day => isWeekend(day)).length}</div>
-                <div>Regelverstöße: {schedule.violations.length}</div>
+                <div>Wochenenden: {days.filter(day => isWeekend(day)).length / 2}</div>
+                <div>Regelabweichungen: {schedule.violations.length}</div>
                 <div>Erstellt am: {format(new Date(schedule.createdAt), 'dd.MM.yyyy HH:mm', { locale: de })}</div>
               </div>
             </div>
@@ -231,10 +298,8 @@ function SchedulePDF({ schedule, employees, settings, onClose }) {
                 <div className="space-y-1">
                   {schedule.violations.map((violation, index) => (
                     <p key={index} className="text-sm text-yellow-700">
-                      • {violation.type === 'understaffed' && 
-                        `${violation.date}: Unterbesetzung im ${violation.shift}dienst (${violation.assigned}/${violation.required})`}
-                      {violation.type === 'hours_mismatch' && 
-                        `${violation.employeeName}: Stunden-Abweichung (${formatHours(violation.actual)} statt ${formatHours(violation.target)})`}
+                      • {violation.type === 'understaffed' && `${violation.date}: Unterbesetzung im ${violation.shift.charAt(0).toUpperCase() + violation.shift.slice(1)}dienst (${violation.assigned}/${violation.required})`}
+                      {violation.type === 'hours_mismatch' && `${violation.employeeName}: Stunden-Abweichung (${formatHours(violation.actual)} statt ${formatHours(violation.target)})`}
                     </p>
                   ))}
                 </div>

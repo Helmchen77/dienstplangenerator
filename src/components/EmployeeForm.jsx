@@ -5,17 +5,17 @@ import { useSchedule } from '../context/ScheduleContext';
 import WebhookService from '../utils/webhookService';
 import '../styles/neumorphism.css';
 
-const { FiX, FiSave, FiPlus, FiMinus, FiCheck } = FiIcons;
+const { FiX, FiSave, FiPlus, FiMinus, FiCheck, FiCalendar } = FiIcons;
 
 const SHIFT_TYPES = ['früh', 'zwischen', 'spät'];
 const WEEKDAYS = [
-  { id: 'monday', label: 'Mo', fullLabel: 'Montag' },
-  { id: 'tuesday', label: 'Di', fullLabel: 'Dienstag' },
-  { id: 'wednesday', label: 'Mi', fullLabel: 'Mittwoch' },
-  { id: 'thursday', label: 'Do', fullLabel: 'Donnerstag' },
-  { id: 'friday', label: 'Fr', fullLabel: 'Freitag' },
-  { id: 'saturday', label: 'Sa', fullLabel: 'Samstag' },
-  { id: 'sunday', label: 'So', fullLabel: 'Sonntag' }
+  { id: 'monday', label: 'M', fullLabel: 'Montag' },
+  { id: 'tuesday', label: 'D', fullLabel: 'Dienstag' },
+  { id: 'wednesday', label: 'M', fullLabel: 'Mittwoch' },
+  { id: 'thursday', label: 'D', fullLabel: 'Donnerstag' },
+  { id: 'friday', label: 'F', fullLabel: 'Freitag' },
+  { id: 'saturday', label: 'S', fullLabel: 'Samstag' },
+  { id: 'sunday', label: 'S', fullLabel: 'Sonntag' }
 ];
 
 function EmployeeForm({ employee, onSubmit, onCancel }) {
@@ -27,6 +27,7 @@ function EmployeeForm({ employee, onSubmit, onCancel }) {
     preferences: [],
     maxConsecutiveDays: 4,
     sickLeave: { from: '', to: '' },
+    vacation: { from: '', to: '' }, // Added vacation field
     availableDays: {
       monday: true,
       tuesday: true,
@@ -50,13 +51,15 @@ function EmployeeForm({ employee, onSubmit, onCancel }) {
         saturday: true,
         sunday: true
       };
-      
       const sickLeave = employee.sickLeave || { from: '', to: '' };
-      
+      const vacation = employee.vacation || { from: '', to: '' };
+
+      // Handle vacation data
       setFormData({
         ...employee,
         maxConsecutiveDays: employee.maxConsecutiveDays || 4,
         sickLeave,
+        vacation, // Include vacation
         availableDays
       });
     }
@@ -68,14 +71,15 @@ function EmployeeForm({ employee, onSubmit, onCancel }) {
       alert('Bitte geben Sie einen Namen ein');
       return;
     }
+
     if (formData.skills.length === 0) {
       alert('Bitte wählen Sie mindestens eine Qualifikation aus');
       return;
     }
-    
+
     // Submit the form data
     onSubmit(formData);
-    
+
     // Trigger employee webhook
     try {
       await WebhookService.triggerWebhook('employees', formData);
@@ -96,20 +100,21 @@ function EmployeeForm({ employee, onSubmit, onCancel }) {
   const handleAvailableDayToggle = (day) => {
     setFormData(prev => ({
       ...prev,
-      availableDays: {
-        ...prev.availableDays,
-        [day]: !prev.availableDays[day]
-      }
+      availableDays: { ...prev.availableDays, [day]: !prev.availableDays[day] }
     }));
   };
 
   const handleSickLeaveChange = (field, value) => {
     setFormData(prev => ({
       ...prev,
-      sickLeave: {
-        ...prev.sickLeave,
-        [field]: value
-      }
+      sickLeave: { ...prev.sickLeave, [field]: value }
+    }));
+  };
+
+  const handleVacationChange = (field, value) => {
+    setFormData(prev => ({
+      ...prev,
+      vacation: { ...prev.vacation, [field]: value }
     }));
   };
 
@@ -150,7 +155,10 @@ function EmployeeForm({ employee, onSubmit, onCancel }) {
           <h2 className="text-xl font-semibold text-gray-900">
             {employee ? 'Mitarbeiter bearbeiten' : 'Neuen Mitarbeiter hinzufügen'}
           </h2>
-          <button onClick={onCancel} className="text-gray-400 hover:text-gray-600 p-2 rounded-full neu-button">
+          <button
+            onClick={onCancel}
+            className="text-gray-400 hover:text-gray-600 p-2 rounded-full neu-button"
+          >
             <SafeIcon icon={FiX} className="w-5 h-5" />
           </button>
         </div>
@@ -184,7 +192,7 @@ function EmployeeForm({ employee, onSubmit, onCancel }) {
               className="neu-input w-full"
             />
           </div>
-          
+
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-2">
               Max. aufeinanderfolgende Arbeitstage
@@ -194,10 +202,7 @@ function EmployeeForm({ employee, onSubmit, onCancel }) {
               min="1"
               max="7"
               value={formData.maxConsecutiveDays}
-              onChange={(e) => setFormData(prev => ({ 
-                ...prev, 
-                maxConsecutiveDays: parseInt(e.target.value) 
-              }))}
+              onChange={(e) => setFormData(prev => ({ ...prev, maxConsecutiveDays: parseInt(e.target.value) }))}
               className="neu-input w-full"
             />
           </div>
@@ -228,24 +233,58 @@ function EmployeeForm({ employee, onSubmit, onCancel }) {
             </div>
           </div>
 
+          {/* Vacation Field */}
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-2">
+              Ferienabwesenheit
+              <SafeIcon icon={FiCalendar} className="w-4 h-4 ml-1 inline-block text-orange-500" />
+            </label>
+            <div className="grid grid-cols-2 gap-3">
+              <div>
+                <label className="block text-xs text-gray-600 mb-1">Von</label>
+                <input
+                  type="date"
+                  value={formData.vacation.from}
+                  onChange={(e) => handleVacationChange('from', e.target.value)}
+                  className="neu-input w-full"
+                />
+              </div>
+              <div>
+                <label className="block text-xs text-gray-600 mb-1">Bis</label>
+                <input
+                  type="date"
+                  value={formData.vacation.to}
+                  onChange={(e) => handleVacationChange('to', e.target.value)}
+                  className="neu-input w-full"
+                />
+              </div>
+            </div>
+          </div>
+
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-2">
               Verfügbarkeit an Wochentagen
             </label>
             <div className="grid grid-cols-7 gap-2">
               {WEEKDAYS.map((day) => (
-                <div 
+                <div
                   key={day.id}
                   onClick={() => handleAvailableDayToggle(day.id)}
-                  className={`p-3 rounded-lg cursor-pointer transition-all flex flex-col items-center
-                    ${formData.availableDays[day.id] ? 'neu-element-inset bg-orange-50' : 'neu-element'}`}
+                  className={`p-3 rounded-lg cursor-pointer transition-all flex flex-col items-center ${
+                    formData.availableDays[day.id]
+                      ? 'neu-element-inset bg-orange-50'
+                      : 'neu-element'
+                  }`}
                   title={day.fullLabel}
                 >
-                  <div className={`w-8 h-8 rounded-full flex items-center justify-center mb-1
-                    ${formData.availableDays[day.id] ? 'bg-orange-500' : 'bg-gray-200'}`}>
-                    {formData.availableDays[day.id] && 
+                  <div
+                    className={`w-8 h-8 rounded-full flex items-center justify-center mb-1 ${
+                      formData.availableDays[day.id] ? 'bg-orange-500' : 'bg-gray-200'
+                    }`}
+                  >
+                    {formData.availableDays[day.id] && (
                       <SafeIcon icon={FiCheck} className="w-4 h-4 text-white" />
-                    }
+                    )}
                   </div>
                   <span className="text-sm font-medium">{day.label}</span>
                 </div>
@@ -263,11 +302,11 @@ function EmployeeForm({ employee, onSubmit, onCancel }) {
                   key={shift}
                   type="button"
                   onClick={() => handleSkillToggle(shift)}
-                  className={`px-4 py-2 rounded-lg text-sm font-medium transition-all
-                    ${formData.skills.includes(shift)
+                  className={`px-4 py-2 rounded-lg text-sm font-medium transition-all ${
+                    formData.skills.includes(shift)
                       ? 'neu-element-inset bg-orange-50 text-orange-700'
                       : 'neu-element text-gray-600'
-                    }`}
+                  }`}
                 >
                   {shift.charAt(0).toUpperCase() + shift.slice(1)}dienst
                 </button>
@@ -289,22 +328,28 @@ function EmployeeForm({ employee, onSubmit, onCancel }) {
                 Hinzufügen
               </button>
             </div>
-            
             {formData.preferences.length === 0 ? (
               <p className="text-sm text-gray-500 italic">Keine Freiwünsche</p>
             ) : (
               <div className="space-y-3">
                 {formData.preferences.map((preference) => (
-                  <div key={preference.id} className="flex items-center space-x-3 p-3 neu-element-inset">
+                  <div
+                    key={preference.id}
+                    className="flex items-center space-x-3 p-3 neu-element-inset"
+                  >
                     <input
                       type="date"
                       value={preference.date}
-                      onChange={(e) => updatePreference(preference.id, 'date', e.target.value)}
+                      onChange={(e) =>
+                        updatePreference(preference.id, 'date', e.target.value)
+                      }
                       className="neu-input text-sm"
                     />
                     <select
                       value={preference.type}
-                      onChange={(e) => updatePreference(preference.id, 'type', e.target.value)}
+                      onChange={(e) =>
+                        updatePreference(preference.id, 'type', e.target.value)
+                      }
                       className="neu-input text-sm"
                     >
                       <option value="frei">Frei</option>
@@ -315,7 +360,9 @@ function EmployeeForm({ employee, onSubmit, onCancel }) {
                     <input
                       type="text"
                       value={preference.reason}
-                      onChange={(e) => updatePreference(preference.id, 'reason', e.target.value)}
+                      onChange={(e) =>
+                        updatePreference(preference.id, 'reason', e.target.value)
+                      }
                       placeholder="Grund (optional)"
                       className="flex-1 neu-input text-sm"
                     />
